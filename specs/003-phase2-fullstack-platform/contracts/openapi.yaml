@@ -1,0 +1,660 @@
+openapi: 3.1.0
+info:
+  title: AI Wealth & Spending Companion API
+  description: |
+    Phase II Full-Stack Financial Platform API.
+    Provides transaction management, budget tracking, and financial analytics.
+  version: 1.0.0
+  contact:
+    name: AI Wealth Companion
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.wealth-companion.example/api/v1
+    description: Production server
+
+tags:
+  - name: transactions
+    description: Transaction management
+  - name: categories
+    description: Category listing
+  - name: budgets
+    description: Budget management
+  - name: summary
+    description: Financial summary
+
+paths:
+  /transactions:
+    get:
+      tags:
+        - transactions
+      summary: List transactions
+      description: Get paginated list of transactions with optional filtering and sorting
+      operationId: listTransactions
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category name
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [income, expense]
+          description: Filter by transaction type
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter by start date (inclusive)
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter by end date (inclusive)
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [date_asc, date_desc, amount_asc, amount_desc]
+            default: date_desc
+          description: Sort order
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - transactions
+      summary: Create transaction
+      description: Create a new income or expense transaction
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionCreate'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Transaction ID
+    get:
+      tags:
+        - transactions
+      summary: Get transaction
+      description: Get a single transaction by ID
+      operationId: getTransaction
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - transactions
+      summary: Update transaction
+      description: Update an existing transaction
+      operationId: updateTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionUpdate'
+      responses:
+        '200':
+          description: Transaction updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+    delete:
+      tags:
+        - transactions
+      summary: Delete transaction
+      description: Soft delete a transaction
+      operationId: deleteTransaction
+      responses:
+        '200':
+          description: Transaction deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /categories:
+    get:
+      tags:
+        - categories
+      summary: List categories
+      description: Get all available transaction categories
+      operationId: listCategories
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+  /budgets:
+    get:
+      tags:
+        - budgets
+      summary: List budgets
+      description: Get all budgets for a specific month/year
+      operationId: listBudgets
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: Budget month (defaults to current month)
+        - name: year
+          in: query
+          schema:
+            type: integer
+            minimum: 2020
+          description: Budget year (defaults to current year)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Budget'
+    post:
+      tags:
+        - budgets
+      summary: Create or update budget
+      description: Set a budget limit for a category. Updates if already exists for month/year.
+      operationId: upsertBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetCreate'
+      responses:
+        '200':
+          description: Budget created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /budgets/{category}:
+    parameters:
+      - name: category
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Category name
+    get:
+      tags:
+        - budgets
+      summary: Get budget status
+      description: Get budget status with spent/remaining for a category
+      operationId: getBudgetStatus
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: Budget month (defaults to current month)
+        - name: year
+          in: query
+          schema:
+            type: integer
+            minimum: 2020
+          description: Budget year (defaults to current year)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetStatus'
+        '404':
+          description: Budget not found for category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /summary:
+    get:
+      tags:
+        - summary
+      summary: Get financial summary
+      description: Get aggregated financial totals for a period
+      operationId: getFinancialSummary
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: Summary month (defaults to current month)
+        - name: year
+          in: query
+          schema:
+            type: integer
+            minimum: 2020
+          description: Summary year (defaults to current year)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialSummary'
+
+components:
+  schemas:
+    Category:
+      type: object
+      required:
+        - id
+        - name
+        - emoji
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          maxLength: 50
+          example: "Food"
+        emoji:
+          type: string
+          maxLength: 10
+          example: "🍔"
+
+    Transaction:
+      type: object
+      required:
+        - id
+        - type
+        - amount
+        - category_id
+        - date
+        - recurring
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          example: 42.50
+        category_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+          example: "2026-01-19"
+        note:
+          type: string
+          maxLength: 255
+          nullable: true
+          example: "Lunch at restaurant"
+        recurring:
+          type: boolean
+          default: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TransactionCreate:
+      type: object
+      required:
+        - type
+        - amount
+        - category_id
+        - date
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        category_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        note:
+          type: string
+          maxLength: 255
+        recurring:
+          type: boolean
+          default: false
+
+    TransactionUpdate:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        category_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        note:
+          type: string
+          maxLength: 255
+        recurring:
+          type: boolean
+
+    TransactionListResponse:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - limit
+        - pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        total:
+          type: integer
+          description: Total number of matching transactions
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Items per page
+        pages:
+          type: integer
+          description: Total number of pages
+
+    Budget:
+      type: object
+      required:
+        - id
+        - category_id
+        - limit_amount
+        - month
+        - year
+      properties:
+        id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        limit_amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          example: 500.00
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          example: 1
+        year:
+          type: integer
+          minimum: 2020
+          example: 2026
+
+    BudgetCreate:
+      type: object
+      required:
+        - category_id
+        - limit_amount
+        - month
+        - year
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        limit_amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        year:
+          type: integer
+          minimum: 2020
+
+    BudgetStatus:
+      type: object
+      required:
+        - category
+        - emoji
+        - limit
+        - spent
+        - remaining
+        - percentage
+        - exceeded
+        - warning
+      properties:
+        category:
+          type: string
+          example: "Food"
+        emoji:
+          type: string
+          example: "🍔"
+        limit:
+          type: number
+          format: decimal
+          example: 500.00
+        spent:
+          type: number
+          format: decimal
+          example: 425.00
+        remaining:
+          type: number
+          format: decimal
+          example: 75.00
+        percentage:
+          type: number
+          format: decimal
+          example: 85.0
+        exceeded:
+          type: boolean
+          example: false
+        warning:
+          type: boolean
+          example: true
+
+    FinancialSummary:
+      type: object
+      required:
+        - total_income
+        - total_expense
+        - net_balance
+        - period_start
+        - period_end
+      properties:
+        total_income:
+          type: number
+          format: decimal
+          example: 5000.00
+        total_expense:
+          type: number
+          format: decimal
+          example: 3200.00
+        net_balance:
+          type: number
+          format: decimal
+          example: 1800.00
+        period_start:
+          type: string
+          format: date
+          example: "2026-01-01"
+        period_end:
+          type: string
+          format: date
+          example: "2026-01-31"
+
+    DeleteResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Transaction deleted successfully"
+
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          example: "Resource not found"
+
+    ValidationError:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string

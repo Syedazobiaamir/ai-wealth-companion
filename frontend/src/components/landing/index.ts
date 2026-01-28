@@ -1,0 +1,9 @@
+export { FloatingElements } from './FloatingElements';
+export { HeroSection } from './HeroSection';
+export { FeatureShowcase } from './FeatureShowcase';
+export { BenefitsSection } from './BenefitsSection';
+export { ProductPreview } from './ProductPreview';
+export { CTASection } from './CTASection';
+export { StatsBar } from './StatsBar';
+export { Footer } from './Footer';
+export { Navbar } from './Navbar';

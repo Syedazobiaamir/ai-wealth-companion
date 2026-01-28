@@ -1,0 +1,18 @@
+# Development Dependencies
+-r requirements.txt
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+httpx>=0.26.0
+aiosqlite>=0.19.0
+
+# Linting & Formatting
+ruff>=0.1.9
+
+# Type Checking
+mypy>=1.8.0
+
+# Database Migrations
+alembic>=1.13.0
