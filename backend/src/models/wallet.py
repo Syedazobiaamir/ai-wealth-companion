@@ -69,3 +69,4 @@ class WalletUpdate(SQLModel):
     color: Optional[str] = None
     icon: Optional[str] = None
     is_default: Optional[bool] = None
+    current_balance: Optional[Decimal] = None

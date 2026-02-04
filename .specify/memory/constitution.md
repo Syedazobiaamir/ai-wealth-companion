@@ -1,23 +1,31 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.2.0 → 1.3.0 (MINOR - Phase II Laws strengthened)
+Version change: 1.3.0 → 2.0.0 (MAJOR - Phase III AI Agent Laws added)
 Modified principles:
-  - Phase II Core Laws: Enhanced with 8 explicit non-negotiables
-  - Phase II Engineering Laws: Added JWT auth, event-driven architecture
-  - Phase II Security Laws: Added JWT authentication requirement
+  - AI-First Architecture: Expanded with MCP, OpenAI SDK requirements
+  - Multi-Modal Interface: Enhanced with voice and Urdu requirements
+  - Technology Stack: Added OpenAI ChatKit, Agents SDK, MCP SDK
 Added sections:
-  - Phase II Data Laws (new subsection)
-  - Phase II Future-Proofing Laws (new subsection)
+  - Phase III Laws – AI Financial Assistant (complete new section)
+  - AI Safety & Governance Laws
+  - MCP Communication Contract
+  - Voice Pipeline Governance
+  - Bilingual Output Requirements (Urdu + English)
+  - Agent Routing Rules
 Removed sections: None
 Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ (aligned - no changes needed)
-  - .specify/templates/spec-template.md ✅ (aligned - no changes needed)
-  - .specify/templates/tasks-template.md ✅ (aligned - no changes needed)
+  - .specify/templates/plan-template.md ✅ (aligned)
+  - .specify/templates/spec-template.md ✅ (aligned)
+  - .specify/templates/tasks-template.md ✅ (aligned)
 Follow-up TODOs: None
 -->
 
 # AI Wealth & Spending Companion Constitution
+
+## Mission Statement
+
+Build a governed AI financial assistant that can understand natural language, manage financial data, assist budgeting, analyze spending, predict investments, support Urdu language, accept voice commands, and operate using reusable intelligence through Claude Code.
 
 ## Core Principles
 
@@ -26,15 +34,17 @@ Follow-up TODOs: None
 All features MUST follow the specs → Claude Code → implementation workflow:
 
 - Feature specifications MUST be written and approved before implementation begins
+- All AI behavior MUST be controlled through specifications
 - Use Spec-Kit Plus templates for all artifacts (spec.md, plan.md, tasks.md)
 - Prompt History Records (PHR) MUST be created for every development session
 - Architecture Decision Records (ADR) MUST be proposed for significant decisions
 - No code changes without corresponding spec or task reference
+- No manual coding outside spec-driven workflow
 
 **Rationale**: Ensures traceability, reduces rework, and maintains alignment between
 business requirements and technical implementation.
 
-### II. AI-First Architecture
+### II. AI-First Architecture (NON-NEGOTIABLE)
 
 Subagents and Skills are first-class architectural components:
 
@@ -47,16 +57,34 @@ Subagents and Skills are first-class architectural components:
 | Notification Subagent | Subagent | Event-driven alerts for budget and transactions |
 | Chatbot NLP Skill | Skill | Natural language & voice command processing |
 | Security Subagent | Subagent | Input validation, mock encryption |
+| Voice Skill | Skill | Speech-to-text and text-to-speech processing |
+| Urdu Language Skill | Skill | Bilingual translation and RTL support |
 
+- All intelligence MUST be reusable via Skills & Subagents
 - Subagents MUST be independently deployable and testable
 - Skills MUST be reusable across multiple phases
 - All reusable logic MUST reside in `phase3/chatbot_agent/skills/`
 - Each subagent MUST expose a well-defined API contract
+- Multi-agent orchestration MUST be supported
 
 **Rationale**: Enables modular development, facilitates parallel workstreams, and
 maximizes code reuse across project phases.
 
-### III. Cloud-Native Design
+### III. Privacy-First Finance Assistant (NON-NEGOTIABLE)
+
+User financial data MUST be protected at all times:
+
+- Financial data MUST NOT be shared with external services without explicit consent
+- AI models MUST NOT retain user financial data after session ends
+- All PII MUST be encrypted at rest and in transit
+- Audit logs MUST track all data access
+- Users MUST be able to delete all their data on request
+- No third-party analytics on financial transactions
+
+**Rationale**: Financial data is highly sensitive; privacy violations destroy user trust
+and may violate regulations.
+
+### IV. Cloud-Native Design
 
 The system MUST be designed for containerized, orchestrated deployment:
 
@@ -71,25 +99,28 @@ The system MUST be designed for containerized, orchestrated deployment:
 **Rationale**: Ensures scalability, resilience, and portability across local
 development and cloud production environments.
 
-### IV. Multi-Modal Interface
+### V. Multi-Modal Interface (NON-NEGOTIABLE)
 
 The application MUST support multiple interaction modes:
 
 - CLI interface with emoji + color-coded feedback
 - Web dashboard (Next.js + Tailwind)
-- Voice command support (+200 bonus points)
-- Multi-language support: English and Urdu (+100 bonus points)
+- Voice command support (MANDATORY - bonus feature)
+- Multi-language support: English and Urdu (MANDATORY - bonus feature)
 - AI chatbot with personality and predictive investment assistant
+- OpenAI ChatKit UI for conversational interface
 
 Interface requirements:
 - All interfaces MUST provide consistent data and behavior
 - Error messages MUST be user-friendly and actionable
 - Response times MUST meet defined performance constraints
+- Voice responses MUST provide audio feedback
+- Urdu text MUST render correctly with RTL support
 
 **Rationale**: Maximizes accessibility and user engagement across different
-user preferences and contexts.
+user preferences and contexts. Bonus features are mandatory per project requirements.
 
-### V. Test-First Development (NON-NEGOTIABLE)
+### VI. Test-First Development (NON-NEGOTIABLE)
 
 TDD is mandatory for all implementation work:
 
@@ -103,7 +134,7 @@ TDD is mandatory for all implementation work:
 **Rationale**: Ensures code correctness, prevents regressions, and maintains
 confidence during refactoring.
 
-### VI. Observability & Security
+### VII. Observability & Security
 
 All components MUST be observable and secure:
 
@@ -338,6 +369,299 @@ user experience across all platforms.
 | ChatbotShell | Floating AI assistant interface |
 | AuthGuard | HOC/wrapper for protected routes |
 
+## Phase III Laws – AI Financial Assistant (NON-NEGOTIABLE)
+
+Phase III transforms the application into an intelligent AI-powered financial
+assistant with natural language understanding, voice commands, and predictive analytics.
+
+### Core Laws (NON-NEGOTIABLE)
+
+The following requirements are MANDATORY for Phase III:
+
+1. **OpenAI ChatKit UI**: All conversational interfaces MUST use OpenAI ChatKit UI
+2. **OpenAI Agents SDK**: All AI agents MUST be built using OpenAI Agents SDK
+3. **Official MCP SDK**: All tool communication MUST use the Official MCP SDK
+4. **Subagents + Skills Architecture**: All intelligence MUST be organized into Subagents and Skills
+5. **Urdu Language Support**: Full bilingual support (English + Urdu) MUST be implemented
+6. **Voice Command Support**: Voice input and output MUST be supported
+7. **Predictive AI**: Investment predictions and spending forecasts MUST be included
+
+**Rationale**: Ensures standardized AI integration, maximum reusability, and
+delivery of all bonus features.
+
+### AI Safety Laws (NON-NEGOTIABLE)
+
+All AI components MUST adhere to these safety requirements:
+
+**Financial Advice Safety Layer**:
+- AI MUST NOT provide specific investment recommendations
+- AI MUST include disclaimers on all financial suggestions
+- AI MUST clearly state it is not a licensed financial advisor
+- AI MUST recommend consulting professionals for major decisions
+- All predictions MUST include confidence intervals and disclaimers
+
+**Explainable AI Responses**:
+- AI MUST explain the reasoning behind recommendations
+- AI MUST cite data sources for any claims
+- AI MUST show calculation methodology when presenting numbers
+- Users MUST be able to ask "why" and get explanations
+
+**No Hallucinated Financial Data**:
+- AI MUST NEVER fabricate transaction data
+- AI MUST NEVER invent account balances
+- AI MUST NEVER create fake investment returns
+- All data presented MUST come from verified backend sources
+- If data is unavailable, AI MUST say "I don't have that information"
+
+**Rationale**: Financial AI errors can cause real monetary harm; safety is paramount.
+
+### Structured Tool Calling Laws (NON-NEGOTIABLE)
+
+All AI-to-tool communication MUST follow these rules:
+
+**JSON Tool Calling**:
+```json
+{
+  "tool": "tool_name",
+  "parameters": {
+    "param1": "value1",
+    "param2": "value2"
+  },
+  "context": {
+    "user_id": "string",
+    "session_id": "string",
+    "language": "en|ur"
+  }
+}
+```
+
+- All tool calls MUST use structured JSON format
+- All tool responses MUST be JSON with status codes
+- Error responses MUST include machine-readable error codes
+- Tool calls MUST be logged for audit purposes
+
+**Rationale**: Structured communication ensures reliability and debuggability.
+
+### MCP Communication Contract (NON-NEGOTIABLE)
+
+All MCP (Model Context Protocol) communication MUST follow these rules:
+
+**Request Format**:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tool/call",
+  "params": {
+    "name": "tool_name",
+    "arguments": {}
+  },
+  "id": "unique_request_id"
+}
+```
+
+**Response Format**:
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "content": [],
+    "isError": false
+  },
+  "id": "unique_request_id"
+}
+```
+
+- All MCP servers MUST implement the official MCP SDK
+- All tools MUST be registered with proper schemas
+- All tools MUST handle errors gracefully
+- Timeout handling MUST be implemented (30s default)
+
+**Rationale**: Standardized MCP communication enables tool reuse and debugging.
+
+### Agent Routing Rules (NON-NEGOTIABLE)
+
+AI requests MUST be routed to appropriate agents:
+
+| Intent Category | Target Agent | Priority |
+|-----------------|--------------|----------|
+| Account queries | Banking Subagent | High |
+| Transaction CRUD | Banking Subagent | High |
+| Budget analysis | Analytics Subagent | Medium |
+| Spending insights | Analytics Subagent | Medium |
+| Investment predictions | Investment Subagent | Medium |
+| Alerts and notifications | Notification Subagent | Low |
+| Voice commands | Voice Skill → Router | High |
+| Urdu queries | Urdu Skill → Router | High |
+
+**Routing Logic**:
+1. Parse user intent from natural language
+2. Identify language (English/Urdu)
+3. Route to appropriate skill/subagent
+4. Return response in user's preferred language
+
+**Rationale**: Proper routing ensures efficient processing and accurate responses.
+
+### Bilingual Output Requirements (NON-NEGOTIABLE)
+
+All user-facing AI responses MUST support English and Urdu:
+
+**Language Detection**:
+- System MUST auto-detect user's language preference
+- Users MUST be able to switch languages mid-conversation
+- Mixed-language input MUST be handled gracefully
+
+**Urdu-Specific Requirements**:
+- All Urdu text MUST render right-to-left (RTL)
+- Numbers MUST be displayed in user's preferred format
+- Currency MUST support Pakistani Rupee (PKR) formatting
+- Date formats MUST support local conventions
+- UI MUST adapt layout for RTL when Urdu is selected
+
+**Translation Quality**:
+- Financial terms MUST be accurately translated
+- Technical terms MAY remain in English with Urdu explanation
+- Translations MUST be culturally appropriate
+
+**Example Response Structure**:
+```json
+{
+  "response": {
+    "en": "Your balance is $1,000",
+    "ur": "آپ کا بیلنس $1,000 ہے"
+  },
+  "preferred_language": "ur",
+  "display": "آپ کا بیلنس $1,000 ہے"
+}
+```
+
+**Rationale**: Urdu support is mandatory per project requirements and expands accessibility.
+
+### Voice Pipeline Governance (NON-NEGOTIABLE)
+
+Voice commands MUST follow this pipeline:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Voice Input                          │
+│              (Microphone / Audio File)                  │
+├─────────────────────────────────────────────────────────┤
+│                Speech-to-Text (STT)                     │
+│         (Whisper API / Browser Web Speech)              │
+├─────────────────────────────────────────────────────────┤
+│                Language Detection                        │
+│               (English / Urdu / Mixed)                  │
+├─────────────────────────────────────────────────────────┤
+│                Intent Recognition                        │
+│              (NLP Processing via Agent)                 │
+├─────────────────────────────────────────────────────────┤
+│                 Agent Routing                            │
+│        (Banking / Analytics / Investment)               │
+├─────────────────────────────────────────────────────────┤
+│                Tool Execution                            │
+│              (MCP Tool Calls)                           │
+├─────────────────────────────────────────────────────────┤
+│              Response Generation                         │
+│           (Bilingual if required)                       │
+├─────────────────────────────────────────────────────────┤
+│                Text-to-Speech (TTS)                     │
+│          (Browser TTS / Cloud TTS API)                  │
+├─────────────────────────────────────────────────────────┤
+│                   Audio Output                          │
+│                (Speaker / Headphones)                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Voice Requirements**:
+- Voice input MUST be transcribed within 3 seconds
+- Voice responses MUST be generated within 5 seconds total
+- Users MUST be able to interrupt voice output
+- Voice MUST work in both English and Urdu
+- Fallback to text MUST be available if voice fails
+
+**Rationale**: Voice support is mandatory per project requirements and enables hands-free usage.
+
+### Skill Reusability Rules (NON-NEGOTIABLE)
+
+All Skills MUST be designed for maximum reusability:
+
+**Skill Definition Requirements**:
+- Each Skill MUST have a single, well-defined purpose
+- Skills MUST NOT contain business logic; delegate to subagents
+- Skills MUST be versioned alongside the main application
+- Skills MUST be documented with examples
+- Skills MUST be testable in isolation
+
+**Skill Organization**:
+```
+phase3/chatbot_agent/skills/
+├── __init__.py
+├── voice_skill.py          # Voice processing
+├── urdu_skill.py           # Urdu translation
+├── nlp_skill.py            # Natural language processing
+├── prediction_skill.py     # Investment predictions
+└── formatting_skill.py     # Response formatting
+```
+
+**Skill Interface**:
+```python
+class Skill:
+    name: str
+    description: str
+    version: str
+
+    async def execute(self, input: dict, context: dict) -> dict:
+        """Execute skill with input and context, return result"""
+        pass
+```
+
+**Rationale**: Reusable skills reduce code duplication and enable rapid feature development.
+
+### Predictive AI Requirements (NON-NEGOTIABLE)
+
+The system MUST include predictive analytics:
+
+**Spending Predictions**:
+- Predict next month's spending by category
+- Identify spending trends and anomalies
+- Alert users to unusual spending patterns
+- Suggest budget adjustments based on trends
+
+**Investment Predictions** (with disclaimers):
+- Show historical ROI calculations
+- Project future values based on historical data
+- Compare investment options
+- All predictions MUST include confidence levels
+- All predictions MUST include "past performance" disclaimers
+
+**Budget Forecasting**:
+- Predict budget overruns before they happen
+- Suggest optimal budget allocations
+- Track progress toward financial goals
+
+**Rationale**: Predictive AI is mandatory per project requirements and adds significant user value.
+
+### Phase III API Structure
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/v1/ai/chat` | POST | Send message to AI chatbot |
+| `/api/v1/ai/voice` | POST | Process voice command |
+| `/api/v1/ai/predict/spending` | GET | Get spending predictions |
+| `/api/v1/ai/predict/investment` | GET | Get investment projections |
+| `/api/v1/ai/insights` | GET | Get AI-generated insights |
+| `/api/v1/ai/language` | POST | Set preferred language |
+
+### Phase III UI Components
+
+| Component | Description |
+|-----------|-------------|
+| ChatKitUI | OpenAI ChatKit conversational interface |
+| VoiceButton | Push-to-talk voice input |
+| LanguageToggle | English/Urdu switcher |
+| PredictionCard | AI prediction display with disclaimers |
+| InsightPanel | AI-generated insights feed |
+| VoiceWaveform | Visual feedback during voice input |
+
 ## Technology Stack
 
 **Backend**:
@@ -351,12 +675,16 @@ user experience across all platforms.
 - Styling: Tailwind CSS + Framer Motion
 - Charts: Recharts or Chart.js
 - State: React Server Components + Client hooks
-- i18n: next-intl or similar (prepared for Urdu)
+- i18n: next-intl (English + Urdu)
+- Chat UI: OpenAI ChatKit UI
 
-**AI/ML**:
-- Claude Code for development assistance
-- Natural language processing for chatbot
-- Voice recognition integration
+**AI/ML (Phase III)**:
+- AI Framework: OpenAI Agents SDK
+- Tool Protocol: Official MCP SDK
+- Voice STT: Whisper API / Web Speech API
+- Voice TTS: Browser TTS / Cloud TTS
+- NLP: Claude Code / OpenAI GPT
+- Predictions: Statistical models + ML
 
 **DevOps**:
 - Containerization: Docker
@@ -372,15 +700,20 @@ user experience across all platforms.
 ┌─────────────────────────────────────────────────────────┐
 │                    API Gateway                          │
 ├─────────────────────────────────────────────────────────┤
+│                  OpenAI ChatKit UI                      │
+├─────────────────────────────────────────────────────────┤
+│              OpenAI Agents SDK Router                   │
+├─────────────────────────────────────────────────────────┤
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
 │  │ Banking  │  │Investment│  │Analytics │  │Notifica-│ │
 │  │ Subagent │  │ Subagent │  │ Subagent │  │  tion   │ │
 │  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
 ├─────────────────────────────────────────────────────────┤
-│              Shared Skills Layer                        │
-│  ┌──────────────────┐  ┌──────────────────────────────┐ │
-│  │ Chatbot NLP Skill│  │    Security Validation       │ │
-│  └──────────────────┘  └──────────────────────────────┘ │
+│              Shared Skills Layer (MCP)                  │
+│  ┌────────┐  ┌────────┐  ┌────────┐  ┌────────────────┐│
+│  │ Voice  │  │  Urdu  │  │  NLP   │  │   Prediction   ││
+│  │ Skill  │  │ Skill  │  │ Skill  │  │     Skill      ││
+│  └────────┘  └────────┘  └────────┘  └────────────────┘│
 ├─────────────────────────────────────────────────────────┤
 │                    Data Layer                           │
 │         (PostgreSQL / Event Store / Cache)              │
@@ -392,6 +725,7 @@ user experience across all platforms.
 - Skills MUST be defined once in `phase3/chatbot_agent/skills/`
 - Skills MUST NOT contain business logic; delegate to subagents
 - Skills MUST be versioned alongside the main application
+- Skills MUST communicate via MCP protocol
 
 ## UI/UX Standards
 
@@ -419,6 +753,7 @@ user experience across all platforms.
 - Web dashboard MUST be responsive (mobile-first)
 - Voice commands MUST provide audio feedback
 - Multi-language strings MUST be externalized for i18n
+- RTL layout MUST be supported for Urdu
 
 ### Phase II Design System
 
@@ -439,13 +774,23 @@ user experience across all platforms.
 - Interface: Command-line only
 - Purpose: Core domain logic validation
 
-### Phase II: Full-Stack Web Application
+### Phase II: Full-Stack Web Application ✅ COMPLETE
 
 - Backend: FastAPI on Python
 - Frontend: Next.js 14 on Vercel/Node
 - Database: Neon PostgreSQL (serverless)
 - Authentication: JWT-based
 - Purpose: Web-based financial management with modern UI
+
+### Phase III: AI Financial Assistant 🔄 IN PROGRESS
+
+- AI Framework: OpenAI Agents SDK
+- Chat UI: OpenAI ChatKit UI
+- Tool Protocol: Official MCP SDK
+- Voice: STT/TTS integration
+- Language: English + Urdu bilingual
+- Predictions: Spending and investment forecasts
+- Purpose: Intelligent conversational financial assistant
 
 ### Phase IV: Local Kubernetes
 
@@ -481,6 +826,7 @@ user experience across all platforms.
 - Code reviews MUST check for constitution violations
 - Complexity beyond constitution guidelines MUST be justified in ADR
 - Quarterly compliance reviews recommended
+- AI components MUST pass safety review before deployment
 
 ### Authoritative Hierarchy
 
@@ -490,4 +836,4 @@ user experience across all platforms.
 4. Implementation Plans (plan.md)
 5. Task Lists (tasks.md)
 
-**Version**: 1.3.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-01-25
+**Version**: 2.0.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-01-28

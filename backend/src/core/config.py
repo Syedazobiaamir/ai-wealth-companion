@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60  # 1 hour
     refresh_token_expire_days: int = 7  # 7 days
 
+    # AI Providers (Gemini takes priority over OpenAI)
+    gemini_api_key: str = ""
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4"
+
     # Rate limiting
     rate_limit_requests: int = 100
     rate_limit_period: int = 60  # seconds

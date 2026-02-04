@@ -28,3 +28,9 @@ slowapi>=0.1.9
 # Utilities
 python-dateutil>=2.8.2
 httpx>=0.26.0
+
+# Phase III: AI Agent Layer
+openai-agents>=0.0.7
+mcp>=1.0.0
+openai>=1.12.0
+google-genai>=1.0.0

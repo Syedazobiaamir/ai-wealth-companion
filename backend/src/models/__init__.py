@@ -76,6 +76,18 @@ from src.models.event_log import (
     EventType,
     EventSource,
 )
+from src.models.conversation import (
+    Conversation,
+    ConversationCreate,
+    ConversationRead,
+)
+from src.models.message import (
+    Message,
+    MessageCreate,
+    MessageRead,
+    MessageRole,
+    InputMethod,
+)
 
 __all__ = [
     # Category
@@ -148,4 +160,14 @@ __all__ = [
     "EventLogCreate",
     "EventType",
     "EventSource",
+    # Conversation
+    "Conversation",
+    "ConversationCreate",
+    "ConversationRead",
+    # Message
+    "Message",
+    "MessageCreate",
+    "MessageRead",
+    "MessageRole",
+    "InputMethod",
 ]

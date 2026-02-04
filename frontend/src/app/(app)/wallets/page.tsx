@@ -34,7 +34,7 @@ export default function WalletsPage() {
   const [totalBalance, setTotalBalance] = useState<{ total_balance: number; currency: string } | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState<Partial<WalletCreate>>({
+  const [formData, setFormData] = useState<Partial<WalletCreate> & { current_balance?: number }>({
     name: '',
     type: 'bank',
     currency: 'PKR',
@@ -69,7 +69,8 @@ export default function WalletsPage() {
     setFormLoading(true);
     try {
       if (editingWallet) {
-        const updated = await walletsApi.update(editingWallet.id, formData as WalletUpdate);
+        const { initial_balance, currency, ...updateFields } = formData;
+        const updated = await walletsApi.update(editingWallet.id, updateFields as WalletUpdate);
         setWallets((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
       } else {
         const newWallet = await walletsApi.create(formData as WalletCreate);
@@ -90,6 +91,7 @@ export default function WalletsPage() {
       name: wallet.name,
       type: wallet.type,
       color: wallet.color || '#9333ea',
+      current_balance: Number(wallet.current_balance),
     });
     setIsModalOpen(true);
   };
@@ -341,7 +343,7 @@ export default function WalletsPage() {
             options={WALLET_TYPES.map((t) => ({ value: t.value, label: `${t.icon} ${t.label}` }))}
           />
 
-          {!editingWallet && (
+          {!editingWallet ? (
             <>
               <Select
                 label="Currency"
@@ -366,6 +368,15 @@ export default function WalletsPage() {
                 placeholder="0.00"
               />
             </>
+          ) : (
+            <Input
+              label="Current Balance"
+              type="number"
+              step="0.01"
+              value={formData.current_balance ?? ''}
+              onChange={(e) => setFormData({ ...formData, current_balance: parseFloat(e.target.value) || 0 })}
+              placeholder="0.00"
+            />
           )}
 
           <div>
