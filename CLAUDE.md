@@ -212,6 +212,9 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 ## Active Technologies
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (003-phase2-fullstack-platform)
 - Neon PostgreSQL (serverless, connection pooling via @neondatabase/serverless) (003-phase2-fullstack-platform)
+- Python 3.11+ (backend), TypeScript 5.x (frontend) + OpenAI Agents SDK, Official MCP SDK, OpenAI ChatKit UI, FastAPI, Next.js 14 (004-ai-financial-assistant)
+- SQLite (dev) / Neon PostgreSQL (prod) — existing from Phase II (004-ai-financial-assistant)
+- Neon PostgreSQL (existing from Phase II) - Task, Conversation, Message models already exist (005-ai-todo-chatbot)
 
 ## Recent Changes
 - 003-phase2-fullstack-platform: Added Python 3.11+ (backend), TypeScript 5.x (frontend)

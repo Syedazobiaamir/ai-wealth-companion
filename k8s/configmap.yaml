@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: ai-wealth
+  labels:
+    app.kubernetes.io/part-of: ai-wealth
+data:
+  APP_NAME: "AI Wealth & Spending Companion"
+  CORS_ORIGINS: "https://ai-wealth.example.com"
+  API_URL: "https://api.ai-wealth.example.com"

@@ -12,6 +12,11 @@ const icons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
     </svg>
   ),
+  MessageCircle: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+  ),
   Wallet: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -61,8 +66,8 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 border-r border-gray-200/50 dark:border-gray-800/50 bg-white/80 dark:bg-gray-900/50 backdrop-blur-xl hidden lg:block">
-      <nav className="p-4 space-y-2">
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 border-r border-gray-200/50 dark:border-gray-800/50 bg-white/80 dark:bg-gray-900/50 backdrop-blur-xl hidden lg:block overflow-y-auto">
+      <nav className="p-4 space-y-2 pb-8">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -85,36 +90,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* AI Assistant promo */}
-      <div className="absolute bottom-4 left-4 right-4">
-        <motion.div
-          className={cn(
-            'p-4 rounded-xl cursor-pointer',
-            'bg-gradient-to-r from-purple-500/10 to-blue-500/10',
-            'border border-purple-200/50 dark:border-purple-700/30',
-            'hover:border-purple-300 dark:hover:border-purple-600',
-            'transition-colors duration-200'
-          )}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg shadow-purple-500/25">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <span className="font-medium text-sm text-slate-700 dark:text-gray-300">
-              AI Assistant
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-gray-400">
-            Click the chat bubble to get help
-          </p>
-        </motion.div>
-      </div>
     </aside>
   );
 }

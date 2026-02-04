@@ -1,82 +1,29 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { aiApi } from '@/lib/api';
+import { LanguageToggle } from '@/components/ai/language-toggle';
+import { VoiceButton } from '@/components/ai/voice-button';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  content_ur?: string;
   timestamp: Date;
   actions?: { label: string; action: string }[];
+  intent?: string;
+  confidence?: number;
 }
-
-// Conversation state for API
-let conversationId: string | undefined;
 
 const QUICK_ACTIONS = [
-  { label: 'Summary', query: 'Give me a summary of my finances', icon: 'chart' },
+  { label: 'Summary', query: 'Show my financial summary', icon: 'chart' },
   { label: 'Budget', query: 'How are my budgets doing?', icon: 'wallet' },
-  { label: 'Tips', query: 'Give me saving tips', icon: 'lightbulb' },
-  { label: 'Trends', query: 'Show my spending trends', icon: 'trending' },
+  { label: 'Tips', query: 'Analyze my spending and give tips', icon: 'lightbulb' },
+  { label: 'Invest', query: 'Can I invest 50,000?', icon: 'trending' },
 ];
-
-const AI_RESPONSES: Record<string, { content: string; actions?: { label: string; action: string }[] }> = {
-  summary: {
-    content: "📊 **Your Financial Summary (January 2026)**\n\n• Total Income: $10,500\n• Total Expenses: $4,700\n• Net Balance: +$5,800\n\nYou're doing great! You've saved 55% of your income this month. Keep it up! 🎉",
-    actions: [
-      { label: 'View Dashboard', action: '/dashboard' },
-      { label: 'See Transactions', action: '/transactions' },
-    ],
-  },
-  budget: {
-    content: "⚠️ **Budget Alert!**\n\nSeveral budgets are over limit:\n\n• 🍔 Food: 178% ($1,070 / $600)\n• 🏠 Rent: 185% ($2,400 / $1,300)\n• 🎬 Entertainment: 130% ($130 / $100)\n\nConsider reviewing your spending or adjusting your budget limits.",
-    actions: [
-      { label: 'Manage Budgets', action: '/budgets' },
-    ],
-  },
-  tips: {
-    content: "💡 **Personalized Saving Tips**\n\n1. **Food Budget**: You're $470 over. Try meal prepping to reduce restaurant expenses.\n\n2. **Entertainment**: Cancel unused subscriptions. You could save ~$30/month.\n\n3. **50/30/20 Rule**: Aim for 50% needs, 30% wants, 20% savings.\n\n4. **Automate Savings**: Set up automatic transfers to savings on payday.\n\nWant me to help you create a savings plan?",
-  },
-  trends: {
-    content: "📈 **Spending Trends**\n\nYour top spending categories this month:\n\n1. 🏠 Rent: $2,400 (51%)\n2. 🍔 Food: $1,070 (23%)\n3. 🛒 Shopping: $400 (9%)\n4. 🚗 Transportation: $240 (5%)\n\nCompared to typical months, your food spending is higher. Consider cooking more at home!",
-    actions: [
-      { label: 'View Analytics', action: '/analytics' },
-    ],
-  },
-  default: {
-    content: "I'm your AI financial assistant! I can help you with:\n\n• 📊 Financial summaries\n• 💰 Budget tracking\n• 💡 Saving tips\n• 📈 Spending analysis\n\nTry asking me something or use the quick actions below!",
-  },
-};
-
-function getAIResponse(query: string): { content: string; actions?: { label: string; action: string }[] } {
-  const lowerQuery = query.toLowerCase();
-
-  if (lowerQuery.includes('summary') || lowerQuery.includes('overview') || lowerQuery.includes('finances')) {
-    return AI_RESPONSES.summary;
-  }
-  if (lowerQuery.includes('budget') || lowerQuery.includes('limit') || lowerQuery.includes('spending limit')) {
-    return AI_RESPONSES.budget;
-  }
-  if (lowerQuery.includes('tip') || lowerQuery.includes('save') || lowerQuery.includes('advice')) {
-    return AI_RESPONSES.tips;
-  }
-  if (lowerQuery.includes('trend') || lowerQuery.includes('spending') || lowerQuery.includes('category')) {
-    return AI_RESPONSES.trends;
-  }
-  if (lowerQuery.includes('hello') || lowerQuery.includes('hi') || lowerQuery.includes('hey')) {
-    return { content: "Hello! 👋 I'm your AI financial assistant. How can I help you today?\n\nYou can ask me about your financial summary, budgets, saving tips, or spending trends!" };
-  }
-  if (lowerQuery.includes('thank')) {
-    return { content: "You're welcome! 😊 Feel free to ask if you need anything else. I'm here to help you manage your finances better!" };
-  }
-
-  return {
-    content: "I understand you're asking about: \"" + query + "\"\n\nI can help you with financial summaries, budget tracking, saving tips, and spending analysis. Try one of the quick actions below or rephrase your question!",
-  };
-}
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,13 +31,21 @@ export function ChatWidget() {
     {
       id: '1',
       role: 'assistant',
-      content: "👋 Hi! I'm your AI financial assistant. I can help you understand your finances, track budgets, and provide personalized tips.\n\nWhat would you like to know?",
+      content: "Hello! I'm your AI financial assistant. I can help you track expenses, manage budgets, analyze spending, and simulate investments.\n\nWhat would you like to do?",
       timestamp: new Date(),
     },
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [language, setLanguage] = useState<string>('en');
+  const [voiceTranscript, setVoiceTranscript] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('ai_language');
+    if (saved) setLanguage(saved);
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -100,7 +55,7 @@ export function ChatWidget() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async (query?: string) => {
+  const handleSend = async (query?: string, inputMethod: string = 'text') => {
     const messageText = query || inputValue;
     if (!messageText.trim()) return;
 
@@ -113,55 +68,50 @@ export function ChatWidget() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue('');
+    setVoiceTranscript('');
     setIsTyping(true);
 
     try {
-      // Try to use the real AI API
-      const response = await aiApi.query(messageText, { conversation_id: conversationId });
+      const response = await aiApi.chat(messageText, conversationId, language, inputMethod);
 
-      // Check if we got a real AI response (not the stub)
-      if (response.data.confidence > 0) {
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: response.data.answer,
-          timestamp: new Date(),
-          actions: response.data.suggested_actions?.map(a => ({
-            label: a.label,
-            action: a.action === 'view_dashboard' ? '/dashboard' : `/${a.action}`,
-          })),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-      } else {
-        // Fall back to local responses (Phase III not yet active)
-        const localResponse = getAIResponse(messageText);
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: localResponse.content,
-          timestamp: new Date(),
-          actions: localResponse.actions,
-        };
-        setMessages((prev) => [...prev, aiMessage]);
+      if (response.conversation_id) {
+        setConversationId(response.conversation_id);
       }
-    } catch {
-      // API call failed, use local fallback
-      const localResponse = getAIResponse(messageText);
+
       const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: response.message_id || (Date.now() + 1).toString(),
         role: 'assistant',
-        content: localResponse.content,
+        content: response.response || 'I could not process that request.',
+        content_ur: response.response_ur,
         timestamp: new Date(),
-        actions: localResponse.actions,
+        intent: response.intent,
+        confidence: response.confidence,
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch {
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "I'm having trouble connecting right now. Please try again in a moment.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
   };
 
-  const handleAction = (action: string) => {
-    window.location.href = action;
+  const handleVoiceTranscript = useCallback((text: string, confidence: number) => {
+    if (confidence >= 0.7) {
+      handleSend(text, 'voice');
+    } else {
+      setVoiceTranscript(text);
+      setInputValue(text);
+    }
+  }, [conversationId, language]);
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
   };
 
   return (
@@ -183,43 +133,16 @@ export function ChatWidget() {
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
-            <motion.svg
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <motion.svg key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </motion.svg>
           ) : (
-            <motion.svg
-              key="chat"
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.5, opacity: 0 }}
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-              />
+            <motion.svg key="chat" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.5, opacity: 0 }} className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
             </motion.svg>
           )}
         </AnimatePresence>
-
-        {/* Notification dot */}
-        {!isOpen && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />
-        )}
+        {!isOpen && <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse" />}
       </motion.button>
 
       {/* Chat Window */}
@@ -253,10 +176,8 @@ export function ChatWidget() {
                   Online
                 </p>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-xl transition-colors"
-              >
+              <LanguageToggle onChange={handleLanguageChange} />
+              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -270,10 +191,7 @@ export function ChatWidget() {
                   key={message.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    'max-w-[85%]',
-                    message.role === 'user' ? 'ml-auto' : 'mr-auto'
-                  )}
+                  className={cn('max-w-[85%]', message.role === 'user' ? 'ml-auto' : 'mr-auto')}
                 >
                   <div
                     className={cn(
@@ -284,15 +202,18 @@ export function ChatWidget() {
                     )}
                   >
                     <p className="text-sm whitespace-pre-line">{message.content}</p>
+                    {message.content_ur && language === 'ur' && (
+                      <p className="text-sm whitespace-pre-line mt-2 pt-2 border-t border-gray-200/30 dark:border-gray-600/30" dir="rtl">
+                        {message.content_ur}
+                      </p>
+                    )}
                   </div>
-
-                  {/* Action buttons */}
                   {message.actions && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {message.actions.map((action, idx) => (
                         <button
                           key={idx}
-                          onClick={() => handleAction(action.action)}
+                          onClick={() => (window.location.href = action.action)}
                           className="text-xs px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
                         >
                           {action.label}
@@ -303,13 +224,8 @@ export function ChatWidget() {
                 </motion.div>
               ))}
 
-              {/* Typing indicator */}
               {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-2 text-gray-500"
-                >
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 text-gray-500">
                   <div className="flex gap-1 p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-bl-md">
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -317,7 +233,6 @@ export function ChatWidget() {
                   </div>
                 </motion.div>
               )}
-
               <div ref={messagesEndRef} />
             </div>
 
@@ -330,41 +245,34 @@ export function ChatWidget() {
                     onClick={() => handleSend(action.query)}
                     className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 hover:text-purple-700 dark:hover:text-purple-300 transition-colors duration-200 whitespace-nowrap cursor-pointer"
                   >
-                    {action.icon === 'chart' && (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    )}
-                    {action.icon === 'wallet' && (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    )}
-                    {action.icon === 'lightbulb' && (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                    )}
-                    {action.icon === 'trending' && (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                      </svg>
-                    )}
                     {action.label}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Voice transcript preview */}
+            {voiceTranscript && (
+              <div className="px-4 py-2 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-200 dark:border-amber-800">
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Heard: &quot;{voiceTranscript}&quot;
+                  <button onClick={() => handleSend(voiceTranscript, 'voice')} className="ml-2 underline">Send</button>
+                  <button onClick={() => { setVoiceTranscript(''); setInputValue(''); }} className="ml-2 underline">Clear</button>
+                </p>
+              </div>
+            )}
+
             {/* Input */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex gap-2">
+                <VoiceButton onTranscript={handleVoiceTranscript} language={language} disabled={isTyping} />
                 <input
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask me anything..."
+                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                  placeholder={language === 'ur' ? 'اپنا سوال لکھیں...' : 'Ask me anything...'}
+                  dir={language === 'ur' ? 'rtl' : 'ltr'}
                   className={cn(
                     'flex-1 px-4 py-2.5 rounded-xl',
                     'bg-gray-100 dark:bg-gray-800',
@@ -387,12 +295,7 @@ export function ChatWidget() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 </motion.button>
               </div>

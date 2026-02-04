@@ -361,11 +361,11 @@ class DashboardService:
         repo = BudgetRepository(self.session)
 
         # Count budgets by status
-        exceeded = await repo.get_exceeded_budgets(month, year)
-        warnings = await repo.get_warning_budgets(month, year)
+        exceeded = await repo.get_exceeded_budgets(user_id, month, year)
+        warnings = await repo.get_warning_budgets(user_id, month, year)
 
         # Get total budget count
-        budgets = await repo.get_budgets_for_period(month, year)
+        budgets = await repo.get_budgets_for_period(user_id, month, year)
 
         return {
             "total_budgets": len(budgets),

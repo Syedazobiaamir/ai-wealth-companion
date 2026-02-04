@@ -242,12 +242,21 @@ export default function BudgetsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Budgets</h1>
           <p className="text-gray-500 dark:text-gray-400">Set and track your spending limits</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} disabled={availableCategories.length === 0}>
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Budget
-        </Button>
+        <div className="relative group">
+          <Button onClick={() => setIsModalOpen(true)} disabled={availableCategories.length === 0}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add Budget
+          </Button>
+          {availableCategories.length === 0 && (
+            <div className="absolute bottom-full mb-2 right-0 hidden group-hover:block">
+              <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                {categories.length === 0 ? 'No categories available' : 'All categories have budgets for this month'}
+              </div>
+            </div>
+          )}
+        </div>
       </motion.div>
 
       {/* Period Selector */}

@@ -4,13 +4,19 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { GlassCard, LoadingPage, Badge } from '@/components/ui';
 import { SpendingPieChart, MonthlyTrendChart, BudgetProgressChart, CategoryBarChart } from '@/components/charts';
-import { summaryApi, budgetsApi } from '@/lib/api';
+import { summaryApi, budgetsApi, aiApi } from '@/lib/api';
+import type { AIHealthScoreResponse, AIInsightsResponse } from '@/lib/api';
+import { InsightCard } from '@/components/ai/insight-card';
+import { HealthScoreDisplay } from '@/components/ai/health-score';
 import { formatCurrency, formatDateForInput, getFirstDayOfMonth, getLastDayOfMonth } from '@/lib/utils';
 import type { DashboardSummary, BudgetStatus } from '@/types';
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus[]>([]);
+  const [healthScore, setHealthScore] = useState<AIHealthScoreResponse | null>(null);
+  const [insights, setInsights] = useState<AIInsightsResponse['insights']>([]);
+  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +33,18 @@ export default function DashboardPage() {
 
         setSummary(dashboardData);
         setBudgetStatus(budgetData);
+
+        // Fetch AI data (non-blocking — don't fail dashboard if AI unavailable)
+        try {
+          const [healthData, insightData] = await Promise.all([
+            aiApi.getHealthScore(),
+            aiApi.getInsights(5),
+          ]);
+          setHealthScore(healthData);
+          setInsights(insightData.insights || []);
+        } catch {
+          // AI features unavailable — dashboard still works
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard');
       } finally {
@@ -145,6 +163,51 @@ export default function DashboardPage() {
           </GlassCard>
         </motion.div>
       </div>
+
+      {/* AI Financial Health & Insights */}
+      {(healthScore || insights.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {healthScore && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <HealthScoreDisplay
+                score={healthScore.score}
+                grade={healthScore.grade}
+                components={healthScore.components}
+                recommendations={healthScore.recommendations}
+              />
+            </motion.div>
+          )}
+          {insights.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="space-y-3"
+            >
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">AI Insights</h3>
+              {insights
+                .filter((i) => !dismissedInsights.has(i.id))
+                .slice(0, 3)
+                .map((insight) => (
+                  <InsightCard
+                    key={insight.id}
+                    id={insight.id}
+                    type={insight.type}
+                    severity={insight.severity}
+                    title={insight.title}
+                    content={insight.content}
+                    actionSuggestion={insight.action_suggestion}
+                    onDismiss={(id) => setDismissedInsights((prev) => new Set(prev).add(id))}
+                  />
+                ))}
+            </motion.div>
+          )}
+        </div>
+      )}
 
       {/* Budget Alerts */}
       {budget_alerts && budget_alerts.length > 0 && (

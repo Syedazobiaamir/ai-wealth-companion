@@ -13,7 +13,8 @@ from sqlalchemy import text
 
 from src.api.v1.router import api_router
 from src.core.config import get_settings
-from src.db.session import init_db, engine
+from src.db.session import init_db, engine, async_session_factory
+from src.db.seed import seed_categories
 
 settings = get_settings()
 
@@ -32,18 +33,47 @@ async def keep_db_warm():
         await asyncio.sleep(60)  # Ping every 60 seconds
 
 
+async def cleanup_idle_conversations():
+    """Background task to close idle conversations (TTL: 30 min)."""
+    import logging
+
+    logger = logging.getLogger("ai.cleanup")
+    while True:
+        await asyncio.sleep(300)  # Run every 5 minutes
+        try:
+            from src.services.conversation import ConversationService
+
+            async with async_session_factory() as session:
+                service = ConversationService(session)
+                closed = await service.cleanup_idle_conversations(idle_minutes=30)
+                if closed > 0:
+                    logger.info("Closed %d idle conversations", closed)
+                    await session.commit()
+        except Exception:
+            pass  # Non-critical background task
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     await init_db()
-    # Start background task to keep database warm
+    # Seed default categories
+    async with async_session_factory() as session:
+        await seed_categories(session)
+    # Start background tasks
     warmup_task = asyncio.create_task(keep_db_warm())
+    cleanup_task = asyncio.create_task(cleanup_idle_conversations())
     yield
     # Shutdown
     warmup_task.cancel()
+    cleanup_task.cancel()
     try:
         await warmup_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await cleanup_task
     except asyncio.CancelledError:
         pass
 

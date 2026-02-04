@@ -22,6 +22,17 @@
     @apply antialiased;
   }
 
+  /* Urdu / RTL text support */
+  [dir='rtl'] {
+    font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', serif;
+  }
+
+  [dir='rtl'] input,
+  [dir='rtl'] textarea {
+    font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', serif;
+    text-align: right;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;

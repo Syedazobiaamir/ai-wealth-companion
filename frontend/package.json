@@ -23,7 +23,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.10.0",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^2.2.0",
+    "@openai/chatkit-react": "^1.4.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.2.0",
