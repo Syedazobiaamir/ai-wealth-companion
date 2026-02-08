@@ -11,6 +11,7 @@ from src.agents.skills.finance_crud import parse_financial_command
 from src.agents.skills.spending_insight import generate_spending_insight
 from src.mcp.tools.transaction_tools import add_transaction
 from src.mcp.tools.financial_summary import get_financial_summary
+from src.mcp.tools.wallet_tools import create_wallet, list_wallets, get_wallet_balance
 
 
 @AgentRegistry.register_agent
@@ -22,10 +23,12 @@ class SpendingAgent(BaseAgent):
 
     metadata = AgentMetadata(
         name="spending",
-        description="Tracks transactions, analyzes spending patterns, and provides financial summaries.",
+        description="Tracks transactions, manages wallets, analyzes spending patterns, and provides financial summaries.",
         keywords={
             "expense", "spend", "spending", "transaction", "income",
             "add", "record", "summary", "kharcha", "amdani",
+            "wallet", "wallets", "account", "balance", "cash", "bank",
+            "credit", "savings", "paisa", "paisay", "money",
         },
     )
 
@@ -38,6 +41,22 @@ class SpendingAgent(BaseAgent):
     async def handle(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
         """Process a spending-related request."""
         intent = parsed.get("intent", "query")
+        lower_msg = message.lower()
+
+        # Check for wallet-related intents first
+        wallet_keywords = {"wallet", "wallets", "account", "balance", "paisa", "paisay"}
+        create_keywords = {"create", "add", "new", "make", "banao", "open"}
+        list_keywords = {"show", "list", "my", "all", "dikhao", "kitna", "kitne"}
+
+        has_wallet = any(kw in lower_msg for kw in wallet_keywords)
+        has_create = any(kw in lower_msg for kw in create_keywords)
+        has_list = any(kw in lower_msg for kw in list_keywords)
+
+        if has_wallet:
+            if has_create:
+                return await self._create_wallet(message, parsed)
+            elif has_list or "balance" in lower_msg:
+                return await self._list_wallets(message)
 
         if intent == "create":
             return await self._add_transaction(message, parsed)
@@ -140,4 +159,93 @@ class SpendingAgent(BaseAgent):
             "intent": "query_summary",
             "confidence": 0.85,
             "entities": result,
+        }
+
+    async def _create_wallet(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new wallet for the user."""
+        lower_msg = message.lower()
+
+        # Extract wallet type from message
+        wallet_type = "cash"  # default
+        type_map = {
+            "bank": "bank",
+            "credit": "credit",
+            "savings": "savings",
+            "investment": "investment",
+            "cash": "cash",
+        }
+        for key, val in type_map.items():
+            if key in lower_msg:
+                wallet_type = val
+                break
+
+        # Extract wallet name or generate one
+        name = parsed.get("wallet_name")
+        if not name:
+            # Generate a default name based on type
+            type_names = {
+                "cash": "My Cash",
+                "bank": "Bank Account",
+                "credit": "Credit Card",
+                "savings": "Savings Account",
+                "investment": "Investment Account",
+            }
+            name = type_names.get(wallet_type, "My Wallet")
+
+        # Extract initial balance if mentioned
+        initial_balance = parsed.get("amount", 0.0)
+
+        result = await create_wallet(
+            user_id=self.user_id,
+            session=self.session,
+            name=name,
+            wallet_type=wallet_type,
+            initial_balance=initial_balance,
+        )
+
+        if "error" in result:
+            return {
+                "response": f"Couldn't create wallet: {result['error']}",
+                "intent": "create_wallet",
+                "tool_calls": [{"tool": "create_wallet", "status": "error", "error": result["error"]}],
+            }
+
+        return {
+            "response": result["message"],
+            "intent": "create_wallet",
+            "confidence": 0.9,
+            "tool_calls": [{"tool": "create_wallet", "status": "success", "result": result}],
+        }
+
+    async def _list_wallets(self, message: str) -> Dict[str, Any]:
+        """List all wallets and their balances."""
+        result = await list_wallets(
+            user_id=self.user_id,
+            session=self.session,
+        )
+
+        if "error" in result:
+            return {
+                "response": f"Couldn't get wallets: {result['error']}",
+                "intent": "list_wallets",
+                "tool_calls": [{"tool": "list_wallets", "status": "error", "error": result["error"]}],
+            }
+
+        if not result.get("wallets"):
+            return {
+                "response": result["message"],
+                "intent": "list_wallets",
+                "confidence": 0.9,
+            }
+
+        lines = [result["message"], ""]
+        for w in result["wallets"]:
+            default_mark = " (default)" if w["is_default"] else ""
+            lines.append(f"  • {w['name']}{default_mark}: {w['currency']} {w['balance']:,.0f} ({w['type']})")
+
+        return {
+            "response": "\n".join(lines),
+            "intent": "list_wallets",
+            "confidence": 0.9,
+            "tool_calls": [{"tool": "list_wallets", "status": "success", "result": result}],
         }

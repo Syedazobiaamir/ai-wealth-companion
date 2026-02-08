@@ -12,6 +12,7 @@ from src.mcp.tools.spending_analysis import analyze_spending
 from src.mcp.tools.investment_tools import simulate_investment
 from src.mcp.tools.dashboard_metrics import generate_dashboard_metrics
 from src.mcp.tools.task_tools import create_task, list_tasks, get_task_summary
+from src.mcp.tools.wallet_tools import create_wallet, list_wallets, get_wallet_balance
 
 
 # Tool registry with JSON schema descriptions
@@ -162,6 +163,54 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
             "required": [],
         },
         "handler": get_task_summary,
+    },
+    "create_wallet": {
+        "description": "Create a new wallet for storing money (cash, bank account, credit card, savings, or investment account).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Wallet name (e.g., 'My Cash', 'Bank Account', 'Savings').",
+                },
+                "wallet_type": {
+                    "type": "string",
+                    "enum": ["cash", "bank", "credit", "savings", "investment"],
+                    "default": "cash",
+                    "description": "Type of wallet.",
+                },
+                "initial_balance": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Starting balance.",
+                },
+                "currency": {
+                    "type": "string",
+                    "default": "PKR",
+                    "description": "Currency code.",
+                },
+            },
+            "required": ["name"],
+        },
+        "handler": create_wallet,
+    },
+    "list_wallets": {
+        "description": "List all wallets and their balances.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        "handler": list_wallets,
+    },
+    "get_wallet_balance": {
+        "description": "Get total balance across all wallets.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+        "handler": get_wallet_balance,
     },
 }
 

@@ -113,6 +113,18 @@ def classify_intent(text: str) -> Tuple[str, float]:
     """
     lower = text.lower()
 
+    # Wallet-related patterns (check first, as they have specific handling)
+    wallet_words = ["wallet", "wallets", "account", "paisa", "paisay"]
+    wallet_create = ["create", "add", "new", "make", "open", "banao"]
+    wallet_query = ["show", "list", "my", "all", "balance", "dikhao", "kitna"]
+
+    has_wallet = any(w in lower for w in wallet_words)
+    if has_wallet:
+        if any(w in lower for w in wallet_create):
+            return ("create_wallet", 0.9)
+        if any(w in lower for w in wallet_query):
+            return ("list_wallets", 0.9)
+
     # Create/add patterns
     create_patterns = [
         "add", "create", "set", "new", "record", "log", "make",
