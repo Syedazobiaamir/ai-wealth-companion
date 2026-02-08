@@ -14,12 +14,15 @@ from src.api.v1.endpoints import (
     ai,
     demo,
 )
-from src.api.routes import auth
+from src.api.routes import auth, oauth
 
 api_router = APIRouter()
 
 # Authentication routes (no prefix - already has /auth prefix)
 api_router.include_router(auth.router)
+
+# OAuth routes (no prefix - already has /auth/oauth prefix)
+api_router.include_router(oauth.router)
 
 api_router.include_router(
     categories.router,

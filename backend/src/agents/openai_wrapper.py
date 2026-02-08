@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.agents.master import MasterOrchestrator
 from src.agents.skills.translation import detect_language
+from src.services.conversation import ConversationService
 
 logger = logging.getLogger("ai.agent_wrapper")
 
@@ -206,6 +207,9 @@ class OpenAIAgentWrapper:
             language=language,
         )
 
+        # Initialize conversation service for history loading
+        self.conversation_service = ConversationService(session)
+
     def _get_gemini_tools(self) -> List[Dict[str, Any]]:
         """Convert tool definitions to Gemini format."""
         from google.genai import types
@@ -271,13 +275,32 @@ class OpenAIAgentWrapper:
 
         tool_calls_made = []
 
-        # Build initial contents
-        contents = [
+        # Build contents with conversation history
+        contents = []
+
+        try:
+            history = await self.conversation_service.get_context_messages(
+                self.conversation_id
+            )
+            # Add history messages
+            for msg in history:
+                role = "user" if msg["role"] == "user" else "model"
+                contents.append(
+                    types.Content(
+                        role=role,
+                        parts=[types.Part(text=msg["content"])]
+                    )
+                )
+        except Exception as e:
+            logger.warning("Failed to load conversation history: %s", str(e))
+
+        # Add current message
+        contents.append(
             types.Content(
                 role="user",
                 parts=[types.Part(text=message)]
             )
-        ]
+        )
 
         # Generate config with system instruction and tools
         config = types.GenerateContentConfig(
@@ -373,10 +396,22 @@ class OpenAIAgentWrapper:
 
     async def _call_openai(self, message: str, language: str) -> Dict[str, Any]:
         """Make the actual OpenAI API call with tool calling."""
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": message}
-        ]
+        # Load conversation history for context
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+        try:
+            history = await self.conversation_service.get_context_messages(
+                self.conversation_id
+            )
+            # Add history messages (excluding the current one which will be added)
+            for msg in history:
+                if msg["role"] in ("user", "assistant"):
+                    messages.append({"role": msg["role"], "content": msg["content"]})
+        except Exception as e:
+            logger.warning("Failed to load conversation history: %s", str(e))
+
+        # Add current message
+        messages.append({"role": "user", "content": message})
 
         # First call - may return tool calls
         response = await self.client.chat.completions.create(

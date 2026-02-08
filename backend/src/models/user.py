@@ -34,12 +34,15 @@ class User(UserBase, table=True):
     __tablename__ = "users"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    password_hash: str = Field(max_length=255)
+    password_hash: str = Field(default="", max_length=255)
     is_active: bool = Field(default=True, index=True)
     is_demo_user: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     last_login_at: Optional[datetime] = Field(default=None)
+    # OAuth fields
+    oauth_provider: Optional[str] = Field(default=None, max_length=20)
+    oauth_provider_id: Optional[str] = Field(default=None, max_length=255)
 
 
 class UserCreate(SQLModel):

@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4"
 
+    # OAuth Providers
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    oauth_redirect_base: str = "http://localhost:3000"
+
     # Rate limiting
     rate_limit_requests: int = 100
     rate_limit_period: int = 60  # seconds

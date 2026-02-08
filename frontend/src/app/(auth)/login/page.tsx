@@ -164,6 +164,10 @@ export default function LoginPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-4">
               <motion.button
+                onClick={() => {
+                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+                  window.location.href = `${apiUrl}/auth/oauth/google`;
+                }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors"
@@ -177,6 +181,10 @@ export default function LoginPage() {
                 Google
               </motion.button>
               <motion.button
+                onClick={() => {
+                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+                  window.location.href = `${apiUrl}/auth/oauth/github`;
+                }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white/70 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors"
