@@ -120,11 +120,11 @@ export function ChatKitWrapper({
         timestamp: new Date().toISOString(),
         intent: response.intent,
         confidence: response.confidence,
-        tool_calls: response.tool_calls,
+        tool_calls: response.tool_calls as ChatMessage['tool_calls'],
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-      onResponseReceived?.(response);
+      onResponseReceived?.(response as unknown as ChatResponse);
     } catch (error) {
       console.error('Chat error:', error);
       const errorMessage: ChatMessage = {

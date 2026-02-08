@@ -45,6 +45,9 @@ htmlcov/
 .env.local
 .env.*.local
 
+# MCP configuration (contains tokens)
+.mcp.json
+
 # OS
 .DS_Store
 Thumbs.db
