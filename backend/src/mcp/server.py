@@ -13,6 +13,14 @@ from src.mcp.tools.investment_tools import simulate_investment
 from src.mcp.tools.dashboard_metrics import generate_dashboard_metrics
 from src.mcp.tools.task_tools import create_task, list_tasks, get_task_summary
 from src.mcp.tools.wallet_tools import create_wallet, list_wallets, get_wallet_balance
+from src.mcp.tools.crud_tools import (
+    create_category, list_categories, delete_category,
+    list_budgets, update_budget, delete_budget,
+    list_transactions, delete_transaction,
+    update_task, delete_task,
+    create_goal, list_goals, update_goal, delete_goal,
+    update_wallet, delete_wallet,
+)
 
 
 # Tool registry with JSON schema descriptions
@@ -211,6 +219,168 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
             "required": [],
         },
         "handler": get_wallet_balance,
+    },
+    # CRUD Tools
+    "create_category": {
+        "description": "Create a new spending category.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Category name."},
+                "category_type": {"type": "string", "enum": ["expense", "income"], "default": "expense"},
+            },
+            "required": ["name"],
+        },
+        "handler": create_category,
+    },
+    "list_categories": {
+        "description": "List all spending categories.",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "handler": list_categories,
+    },
+    "delete_category": {
+        "description": "Delete a category by name.",
+        "parameters": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "description": "Category name to delete."}},
+            "required": ["name"],
+        },
+        "handler": delete_category,
+    },
+    "list_budgets": {
+        "description": "List all budgets for the current month.",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "handler": list_budgets,
+    },
+    "update_budget": {
+        "description": "Set or update a budget for a category.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "Category name."},
+                "amount": {"type": "number", "description": "Budget limit."},
+            },
+            "required": ["category", "amount"],
+        },
+        "handler": update_budget,
+    },
+    "delete_budget": {
+        "description": "Delete a budget for a category.",
+        "parameters": {
+            "type": "object",
+            "properties": {"category": {"type": "string", "description": "Category name."}},
+            "required": ["category"],
+        },
+        "handler": delete_budget,
+    },
+    "list_transactions": {
+        "description": "List recent transactions.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "default": 10},
+                "transaction_type": {"type": "string", "enum": ["income", "expense"]},
+            },
+            "required": [],
+        },
+        "handler": list_transactions,
+    },
+    "delete_transaction": {
+        "description": "Delete a transaction.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "transaction_id": {"type": "string", "description": "Transaction ID."},
+                "last": {"type": "boolean", "description": "Delete the last transaction."},
+            },
+            "required": [],
+        },
+        "handler": delete_transaction,
+    },
+    "update_task": {
+        "description": "Update or complete a task.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "task_title": {"type": "string", "description": "Task title to find."},
+                "new_title": {"type": "string", "description": "New title."},
+                "new_priority": {"type": "string", "enum": ["high", "medium", "low"]},
+                "mark_complete": {"type": "boolean", "description": "Mark as completed."},
+            },
+            "required": ["task_title"],
+        },
+        "handler": update_task,
+    },
+    "delete_task": {
+        "description": "Delete a task by title.",
+        "parameters": {
+            "type": "object",
+            "properties": {"task_title": {"type": "string", "description": "Task title."}},
+            "required": ["task_title"],
+        },
+        "handler": delete_task,
+    },
+    "create_goal": {
+        "description": "Create a savings goal.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Goal name."},
+                "target_amount": {"type": "number", "description": "Target amount."},
+                "target_date": {"type": "string", "description": "Target date YYYY-MM-DD."},
+            },
+            "required": ["name", "target_amount"],
+        },
+        "handler": create_goal,
+    },
+    "list_goals": {
+        "description": "List all savings goals.",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+        "handler": list_goals,
+    },
+    "update_goal": {
+        "description": "Update a goal - add savings or change target.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Goal name."},
+                "add_amount": {"type": "number", "description": "Amount to add."},
+                "new_target": {"type": "number", "description": "New target amount."},
+            },
+            "required": ["name"],
+        },
+        "handler": update_goal,
+    },
+    "delete_goal": {
+        "description": "Delete a savings goal.",
+        "parameters": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "description": "Goal name."}},
+            "required": ["name"],
+        },
+        "handler": delete_goal,
+    },
+    "update_wallet": {
+        "description": "Update a wallet - rename or set as default.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Wallet name."},
+                "new_name": {"type": "string", "description": "New name."},
+                "set_default": {"type": "boolean", "description": "Set as default wallet."},
+            },
+            "required": ["name"],
+        },
+        "handler": update_wallet,
+    },
+    "delete_wallet": {
+        "description": "Delete a wallet.",
+        "parameters": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "description": "Wallet name."}},
+            "required": ["name"],
+        },
+        "handler": delete_wallet,
     },
 }
 

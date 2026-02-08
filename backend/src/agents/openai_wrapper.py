@@ -178,14 +178,24 @@ class OpenAIAgentWrapper:
         gemini_key = os.getenv("GEMINI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
 
+        logger.info("API keys found: GEMINI=%s, OPENAI=%s", bool(gemini_key), bool(openai_key))
+
         if gemini_key:
+            # Use google-genai package (new SDK)
+            logger.info("Attempting Gemini initialization...")
             try:
                 from google import genai
-                self.client = genai.Client(api_key=gemini_key)
+                logger.info("google.genai imported successfully")
+                self.gemini_client = genai.Client(api_key=gemini_key)
+                logger.info("Gemini Client created successfully")
                 self.provider = "gemini"
-                logger.info("Using Gemini API")
+                logger.info("Gemini initialized - provider set to 'gemini'")
+            except ImportError as ie:
+                logger.error("IMPORT ERROR - google-genai not installed: %s", str(ie))
             except Exception as e:
-                logger.warning("Failed to initialize Gemini: %s", str(e))
+                logger.error("INIT ERROR - Gemini failed: %s (type: %s)", str(e), type(e).__name__)
+        else:
+            logger.info("No GEMINI_API_KEY found in environment")
 
         if not self.provider and openai_key:
             try:
@@ -197,7 +207,12 @@ class OpenAIAgentWrapper:
                 logger.warning("Failed to initialize OpenAI: %s", str(e))
 
         if not self.provider:
-            logger.warning("No API key configured, using MasterOrchestrator fallback")
+            logger.warning("No AI provider configured, using MasterOrchestrator fallback")
+            # Store debug info
+            self.debug_info = {
+                "gemini_key_present": bool(gemini_key),
+                "openai_key_present": bool(openai_key),
+            }
 
         # Initialize MasterOrchestrator for tool execution
         self.orchestrator = MasterOrchestrator(
@@ -256,8 +271,11 @@ class OpenAIAgentWrapper:
 
         # Fallback to MasterOrchestrator if no provider configured
         if not self.provider:
-            logger.info("No AI provider, using MasterOrchestrator")
-            return await self.orchestrator.process(message)
+            logger.info("No AI provider set, using MasterOrchestrator fallback")
+            result = await self.orchestrator.process(message)
+            result["provider"] = "rule-based"
+            result["_debug"] = getattr(self, 'debug_info', {})
+            return result
 
         try:
             if self.provider == "gemini":
@@ -269,127 +287,63 @@ class OpenAIAgentWrapper:
             return await self.orchestrator.process(message)
 
     async def _call_gemini(self, message: str, language: str) -> Dict[str, Any]:
-        """Make Gemini API call with tool calling."""
+        """Make Gemini API call using google-genai SDK."""
         import asyncio
-        from google.genai import types
 
         tool_calls_made = []
 
-        # Build contents with conversation history
+        # Build conversation with history
         contents = []
-
         try:
             history = await self.conversation_service.get_context_messages(
                 self.conversation_id
             )
-            # Add history messages
             for msg in history:
                 role = "user" if msg["role"] == "user" else "model"
-                contents.append(
-                    types.Content(
-                        role=role,
-                        parts=[types.Part(text=msg["content"])]
-                    )
-                )
+                contents.append({"role": role, "parts": [{"text": msg["content"]}]})
         except Exception as e:
             logger.warning("Failed to load conversation history: %s", str(e))
 
+        # Add system instruction as first user message if no history
+        if not contents:
+            contents.append({"role": "user", "parts": [{"text": SYSTEM_PROMPT}]})
+            contents.append({"role": "model", "parts": [{"text": "I understand. I'm your AI financial assistant ready to help!"}]})
+
         # Add current message
-        contents.append(
-            types.Content(
-                role="user",
-                parts=[types.Part(text=message)]
-            )
-        )
+        contents.append({"role": "user", "parts": [{"text": message}]})
 
-        # Generate config with system instruction and tools
-        config = types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            tools=self._get_gemini_tools(),
-        )
-
-        # Make async call
         def sync_generate():
-            return self.client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=contents,
-                config=config,
+            return self.gemini_client.models.generate_content(
+                model="gemini-2.5-flash-lite",
+                contents=contents
             )
 
         response = await asyncio.to_thread(sync_generate)
 
-        # Process response - handle function calls in a loop
-        max_iterations = 5
-        iteration = 0
-
-        while iteration < max_iterations:
-            iteration += 1
-
-            # Check if we have a response with parts
-            if not response.candidates or not response.candidates[0].content.parts:
-                break
-
-            # Check for function calls
-            has_function_call = False
-            for part in response.candidates[0].content.parts:
-                if part.function_call:
-                    has_function_call = True
-                    function_call = part.function_call
-                    function_name = function_call.name
-                    arguments = dict(function_call.args) if function_call.args else {}
-
-                    logger.info("Gemini tool call: %s with args %s", function_name, arguments)
-
-                    # Execute tool
-                    tool_result = await self._execute_tool(function_name, arguments)
-                    tool_calls_made.append({
-                        "name": function_name,
-                        "arguments": arguments,
-                        "result": tool_result
-                    })
-
-                    # Add assistant response and function result to contents
-                    contents.append(response.candidates[0].content)
-                    contents.append(
-                        types.Content(
-                            role="user",
-                            parts=[
-                                types.Part(
-                                    function_response=types.FunctionResponse(
-                                        name=function_name,
-                                        response=tool_result
-                                    )
-                                )
-                            ]
-                        )
-                    )
-
-                    # Get next response
-                    response = await asyncio.to_thread(sync_generate)
-                    break  # Process one function call at a time
-
-            if not has_function_call:
-                break
-
         # Extract text response
-        response_text = ""
-        if response.candidates and response.candidates[0].content.parts:
-            for part in response.candidates[0].content.parts:
-                if part.text:
-                    response_text += part.text
+        response_text = response.text if hasattr(response, 'text') else str(response)
 
-        # Add financial disclaimer if needed
-        if any(tc.get("name") == "simulate_investment" for tc in tool_calls_made):
-            if FINANCIAL_DISCLAIMER not in response_text:
-                response_text += f"\n\n{FINANCIAL_DISCLAIMER}"
+        # For now, we'll use the orchestrator for tool execution
+        # and just use Gemini for natural language understanding
+
+        # Check if Gemini suggests an action we should take
+        lower_response = response_text.lower()
+        if any(word in lower_response for word in ["record", "add", "create", "spent", "budget"]):
+            # Let the orchestrator handle the actual action
+            orchestrator_result = await self.orchestrator.process(message)
+            # Combine Gemini's response with orchestrator's result
+            if orchestrator_result.get("tool_calls"):
+                tool_calls_made = orchestrator_result.get("tool_calls", [])
+                # Use orchestrator's response for actions
+                response_text = orchestrator_result.get("response", response_text)
 
         return {
             "response": response_text,
             "response_ur": None,
-            "intent": self._infer_intent(tool_calls_made),
-            "confidence": 0.95 if tool_calls_made else 0.85,
+            "intent": "gemini_chat",
+            "confidence": 0.95,
             "language_detected": language,
-            "entities": self._extract_entities(tool_calls_made),
+            "entities": None,
             "tool_calls": tool_calls_made,
             "provider": "gemini",
         }

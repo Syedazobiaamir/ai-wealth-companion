@@ -48,8 +48,9 @@ class AIService:
         """
         import os
 
-        # Use OpenAI wrapper if API key is available and use_openai is True
-        if use_openai and os.getenv("OPENAI_API_KEY"):
+        # Use OpenAI wrapper if any LLM API key is available and use_openai is True
+        # Priority: GEMINI_API_KEY > OPENAI_API_KEY > MasterOrchestrator fallback
+        if use_openai and (os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")):
             from src.agents.openai_wrapper import OpenAIAgentWrapper
 
             wrapper = OpenAIAgentWrapper(

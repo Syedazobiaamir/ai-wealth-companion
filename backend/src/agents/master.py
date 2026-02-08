@@ -7,11 +7,25 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.agents.registry import AgentRegistry
-from src.agents.skills.finance_crud import parse_financial_command, classify_intent
+from src.agents.skills.finance_crud import parse_financial_command, classify_intent, extract_category, CATEGORY_ALIASES
 from src.agents.skills.translation import detect_language, translate_response_hint, format_currency_urdu
 from src.services.conversation import ConversationService
 
 logger = logging.getLogger("ai.orchestrator")
+
+
+def extract_category_from_reply(text: str) -> str:
+    """Extract category from a simple reply like 'groceries' or 'food'."""
+    # First try direct category extraction
+    category = extract_category(text)
+    if category:
+        return category
+
+    # If no match, use the text itself as category (capitalize first letter)
+    cleaned = text.strip().title()
+    if len(cleaned) > 0 and len(cleaned) < 50:
+        return cleaned
+    return None
 
 # Safety guardrails embedded in all responses
 FINANCIAL_DISCLAIMER = (
@@ -48,10 +62,39 @@ class MasterOrchestrator:
         self.user_id = user_id
         self.conversation_id = conversation_id
         self.language = language
+        self.conversation_service = ConversationService(session)
 
         # Auto-discover and instantiate all registered agents
         AgentRegistry.auto_discover()
         self.agents = AgentRegistry.create_agents(session, user_id)
+
+    async def _get_pending_context(self) -> Dict[str, Any]:
+        """Check recent messages for pending context (e.g., waiting for category)."""
+        messages = await self.conversation_service.get_context_messages(self.conversation_id)
+        if len(messages) < 2:
+            return {}
+
+        # Look at the last assistant message
+        for i in range(len(messages) - 1, -1, -1):
+            msg = messages[i]
+            if msg["role"] == "assistant":
+                content = msg["content"].lower()
+                # Check if bot was asking for category
+                if "what category" in content or "which category" in content:
+                    # Find the previous user message with amount
+                    for j in range(i - 1, -1, -1):
+                        if messages[j]["role"] == "user":
+                            prev_parsed = parse_financial_command(messages[j]["content"])
+                            if prev_parsed.get("amount"):
+                                return {
+                                    "pending_intent": "create_transaction",
+                                    "amount": prev_parsed["amount"],
+                                    "transaction_type": prev_parsed.get("transaction_type", "expense"),
+                                    "date": prev_parsed.get("date"),
+                                }
+                            break
+                break
+        return {}
 
     async def process(self, message: str) -> Dict[str, Any]:
         """Process a user message through routing, execution, and safety."""
@@ -64,10 +107,29 @@ class MasterOrchestrator:
         detected_lang = detect_language(message)
         effective_lang = detected_lang if detected_lang != "en" else self.language
 
+        # Check for pending context from previous messages
+        pending = await self._get_pending_context()
+
         # Parse the financial command
         parsed = parse_financial_command(message)
         intent = parsed["intent"]
         confidence = parsed["confidence"]
+
+        # Merge pending context if available
+        if pending.get("pending_intent") == "create_transaction":
+            # User might be providing just the category
+            if not parsed.get("amount") and pending.get("amount"):
+                parsed["amount"] = pending["amount"]
+                parsed["transaction_type"] = pending.get("transaction_type", "expense")
+                parsed["date"] = pending.get("date")
+                parsed["intent"] = "create"
+                intent = "create"
+                confidence = 0.9
+                # Try to extract category from current message
+                if not parsed.get("category"):
+                    parsed["category"] = extract_category_from_reply(message)
+                logger.info("Merged pending context: amount=%s", parsed["amount"])
+
         logger.info("Parsed intent=%s confidence=%.2f lang=%s", intent, confidence, detected_lang)
 
         # Safety: check if off-topic

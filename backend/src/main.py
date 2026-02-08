@@ -107,7 +107,14 @@ app.add_middleware(
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Basic health check."""
-    return {"status": "healthy", "version": settings.app_version}
+    import os
+    gemini_key = os.getenv("GEMINI_API_KEY", "")
+    return {
+        "status": "healthy",
+        "version": settings.app_version,
+        "ai_provider": "gemini" if gemini_key else "rule-based",
+        "gemini_configured": bool(gemini_key),
+    }
 
 
 @app.get("/health/ready", tags=["Health"])
