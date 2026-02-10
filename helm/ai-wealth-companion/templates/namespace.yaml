@@ -5,4 +5,15 @@ metadata:
   name: {{ .Values.global.namespace }}
   labels:
     {{- include "ai-wealth-companion.labels" . | nindent 4 }}
+    app.kubernetes.io/name: ai-wealth-companion
+    app.kubernetes.io/part-of: ai-wealth-ecosystem
+    {{- if and .Values.dapr .Values.dapr.enabled }}
+    # Enable Dapr sidecar injection for all pods in this namespace
+    dapr.io/inject: "true"
+    {{- end }}
+  {{- if and .Values.dapr .Values.dapr.enabled }}
+  annotations:
+    # Dapr namespace configuration
+    dapr.io/config: "ai-wealth-config"
+  {{- end }}
 {{- end }}

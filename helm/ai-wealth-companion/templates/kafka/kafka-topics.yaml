@@ -1,0 +1,119 @@
+{{- if .Values.kafka.enabled }}
+# Phase V: Kafka Topics for Event-Driven Architecture
+# AI Wealth Companion Event Topics
+---
+# Transaction Events Topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: transactions
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+    app.kubernetes.io/name: kafka-topic
+    app.kubernetes.io/component: transactions
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  partitions: 3
+  replicas: {{ min .Values.kafka.replicas 2 }}
+  config:
+    retention.ms: "604800000"  # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: "1"
+    segment.bytes: "536870912"  # 512MB
+---
+# Budget Alerts Topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: budget-alerts
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+    app.kubernetes.io/name: kafka-topic
+    app.kubernetes.io/component: budget-alerts
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  partitions: 3
+  replicas: {{ min .Values.kafka.replicas 2 }}
+  config:
+    retention.ms: "86400000"  # 1 day
+    cleanup.policy: delete
+    min.insync.replicas: "1"
+---
+# AI Insights Topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ai-insights
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+    app.kubernetes.io/name: kafka-topic
+    app.kubernetes.io/component: ai-insights
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  partitions: 3
+  replicas: {{ min .Values.kafka.replicas 2 }}
+  config:
+    retention.ms: "604800000"  # 7 days
+    cleanup.policy: delete
+    min.insync.replicas: "1"
+---
+# Notifications Topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: notifications
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+    app.kubernetes.io/name: kafka-topic
+    app.kubernetes.io/component: notifications
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  partitions: 3
+  replicas: {{ min .Values.kafka.replicas 2 }}
+  config:
+    retention.ms: "86400000"  # 1 day
+    cleanup.policy: delete
+    min.insync.replicas: "1"
+---
+# Dead Letter Queue Topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: dead-letter
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+    app.kubernetes.io/name: kafka-topic
+    app.kubernetes.io/component: dead-letter
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  partitions: 1
+  replicas: {{ min .Values.kafka.replicas 2 }}
+  config:
+    retention.ms: "2592000000"  # 30 days
+    cleanup.policy: delete
+    min.insync.replicas: "1"
+---
+# User Alerts Topic
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: user-alerts
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    strimzi.io/cluster: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+    app.kubernetes.io/name: kafka-topic
+    app.kubernetes.io/component: user-alerts
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  partitions: 3
+  replicas: {{ min .Values.kafka.replicas 2 }}
+  config:
+    retention.ms: "86400000"  # 1 day
+    cleanup.policy: delete
+    min.insync.replicas: "1"
+{{- end }}

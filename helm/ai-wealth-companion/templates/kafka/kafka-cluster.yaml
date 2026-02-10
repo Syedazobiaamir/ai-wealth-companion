@@ -1,0 +1,142 @@
+{{- if .Values.kafka.enabled }}
+# Phase V: Strimzi Kafka Cluster
+# AI Wealth Companion Event-Driven Architecture
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/component: message-broker
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  kafka:
+    version: 3.6.0
+    replicas: {{ .Values.kafka.replicas | default 3 }}
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+      # Replication and durability
+      offsets.topic.replication.factor: {{ min .Values.kafka.replicas 3 }}
+      transaction.state.log.replication.factor: {{ min .Values.kafka.replicas 3 }}
+      transaction.state.log.min.isr: {{ min .Values.kafka.replicas 2 }}
+      default.replication.factor: {{ min .Values.kafka.replicas 2 }}
+      min.insync.replicas: {{ sub (min .Values.kafka.replicas 2) 0 }}
+
+      # Performance tuning
+      num.partitions: 3
+      num.recovery.threads.per.data.dir: 2
+      log.retention.hours: 168  # 7 days
+      log.segment.bytes: 1073741824  # 1GB
+      log.retention.check.interval.ms: 300000
+
+      # Producer settings
+      max.request.size: 10485760  # 10MB
+
+      # Consumer settings
+      group.initial.rebalance.delay.ms: 3000
+
+      # Compression
+      compression.type: lz4
+
+    storage:
+      type: persistent-claim
+      size: {{ .Values.kafka.storage.size | default "10Gi" }}
+      {{- if .Values.kafka.storage.storageClass }}
+      class: {{ .Values.kafka.storage.storageClass }}
+      {{- end }}
+      deleteClaim: false
+    resources:
+      requests:
+        cpu: {{ .Values.kafka.resources.requests.cpu | default "500m" }}
+        memory: {{ .Values.kafka.resources.requests.memory | default "1Gi" }}
+      limits:
+        cpu: {{ .Values.kafka.resources.limits.cpu | default "1000m" }}
+        memory: {{ .Values.kafka.resources.limits.memory | default "2Gi" }}
+    metricsConfig:
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef:
+          name: kafka-metrics
+          key: kafka-metrics-config.yml
+          optional: true
+    readinessProbe:
+      initialDelaySeconds: 30
+      timeoutSeconds: 10
+    livenessProbe:
+      initialDelaySeconds: 30
+      timeoutSeconds: 10
+    template:
+      pod:
+        metadata:
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "9404"
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/name
+                      operator: In
+                      values:
+                        - {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}-kafka
+                topologyKey: kubernetes.io/hostname
+
+  # Zookeeper configuration (for Kafka < 3.7 KRaft mode)
+  zookeeper:
+    replicas: 3
+    storage:
+      type: persistent-claim
+      size: 5Gi
+      {{- if .Values.kafka.storage.storageClass }}
+      class: {{ .Values.kafka.storage.storageClass }}
+      {{- end }}
+      deleteClaim: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
+    template:
+      pod:
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: strimzi.io/name
+                      operator: In
+                      values:
+                        - {{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}-zookeeper
+                topologyKey: kubernetes.io/hostname
+
+  # Entity Operator for topic and user management
+  entityOperator:
+    topicOperator:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+    userOperator:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+{{- end }}

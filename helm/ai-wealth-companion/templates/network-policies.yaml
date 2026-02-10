@@ -1,0 +1,237 @@
+{{- if and .Values.security .Values.security.networkPolicies .Values.security.networkPolicies.enabled }}
+# Phase V: Network Policies for Security Hardening
+# AI Wealth Companion Cloud-Native Security
+---
+# Default deny all ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Allow ingress controller to reach backend and frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-apps
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ai-wealth-companion
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 3000
+---
+# Allow backend to access Kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-to-kafka
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              strimzi.io/cluster: ai-wealth-kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+---
+# Allow backend to access Redis
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-to-redis
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+---
+# Allow Dapr sidecars to communicate
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dapr-sidecar
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ai-wealth-companion
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: dapr-system
+      ports:
+        - protocol: TCP
+          port: 3500
+        - protocol: TCP
+          port: 50001
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: dapr-system
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+---
+# Allow Prometheus to scrape metrics
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ai-wealth-companion
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 3000
+        - protocol: TCP
+          port: 9090
+---
+# Allow DNS resolution
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# Allow external database access (Neon)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external-db
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# Allow external AI API access (Gemini, OpenAI)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external-ai-apis
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: network-policy
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+{{- end }}

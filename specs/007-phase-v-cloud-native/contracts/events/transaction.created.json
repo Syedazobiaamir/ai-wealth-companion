@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-wealth-companion.com/events/finance.transaction.created.json",
+  "title": "TransactionCreatedEvent",
+  "description": "Event published when a new financial transaction is created",
+  "type": "object",
+  "required": ["specversion", "id", "type", "source", "time", "datacontenttype", "data"],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "const": "1.0",
+      "description": "CloudEvents specification version"
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier"
+    },
+    "type": {
+      "type": "string",
+      "const": "finance.transaction.created",
+      "description": "Event type"
+    },
+    "source": {
+      "type": "string",
+      "description": "Service that generated the event"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp in ISO8601 format"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "const": "application/json"
+    },
+    "correlationid": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Request correlation ID for tracing"
+    },
+    "traceparent": {
+      "type": "string",
+      "description": "W3C trace context"
+    },
+    "data": {
+      "type": "object",
+      "required": ["transactionId", "userId", "amount", "type", "category", "walletId", "timestamp"],
+      "properties": {
+        "transactionId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Transaction unique identifier"
+        },
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "User who created the transaction"
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Transaction amount (positive)"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["income", "expense", "transfer"],
+          "description": "Transaction type"
+        },
+        "category": {
+          "type": "string",
+          "description": "Transaction category"
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional transaction description"
+        },
+        "walletId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Source wallet"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Transaction date/time"
+        }
+      }
+    }
+  }
+}

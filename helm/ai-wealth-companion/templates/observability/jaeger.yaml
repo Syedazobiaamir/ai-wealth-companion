@@ -1,0 +1,150 @@
+{{- if and .Values.observability .Values.observability.enabled .Values.observability.jaeger.enabled }}
+# Phase V: Jaeger Distributed Tracing
+# AI Wealth Companion Cloud-Native Observability
+---
+# Jaeger All-in-One Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: jaeger
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: tracing
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "14269"
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.52
+          env:
+            - name: COLLECTOR_ZIPKIN_HOST_PORT
+              value: ":9411"
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+            - name: SPAN_STORAGE_TYPE
+              value: "memory"
+            - name: MEMORY_MAX_TRACES
+              value: "50000"
+          ports:
+            # Jaeger UI
+            - containerPort: 16686
+              name: ui
+              protocol: TCP
+            # Jaeger Collector - accept jaeger.thrift over HTTP
+            - containerPort: 14268
+              name: collector-http
+              protocol: TCP
+            # Jaeger Collector - accept model.proto
+            - containerPort: 14250
+              name: collector-grpc
+              protocol: TCP
+            # Zipkin compatible endpoint
+            - containerPort: 9411
+              name: zipkin
+              protocol: TCP
+            # OTLP gRPC
+            - containerPort: 4317
+              name: otlp-grpc
+              protocol: TCP
+            # OTLP HTTP
+            - containerPort: 4318
+              name: otlp-http
+              protocol: TCP
+            # Admin/health port
+            - containerPort: 14269
+              name: admin
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 14269
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 14269
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+# Jaeger Query Service (UI)
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: jaeger
+spec:
+  type: ClusterIP
+  ports:
+    - port: 16686
+      targetPort: 16686
+      name: ui
+  selector:
+    app: jaeger
+---
+# Jaeger Collector Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: jaeger
+spec:
+  type: ClusterIP
+  ports:
+    - port: 14268
+      targetPort: 14268
+      name: http
+    - port: 14250
+      targetPort: 14250
+      name: grpc
+    - port: 9411
+      targetPort: 9411
+      name: zipkin
+    - port: 4317
+      targetPort: 4317
+      name: otlp-grpc
+    - port: 4318
+      targetPort: 4318
+      name: otlp-http
+  selector:
+    app: jaeger
+---
+# Dapr Tracing Configuration
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: tracing-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: dapr-tracing
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: "http://jaeger-collector.{{ .Values.global.namespace }}.svc.cluster.local:9411/api/v2/spans"
+{{- end }}

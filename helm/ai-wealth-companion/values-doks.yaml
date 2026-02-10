@@ -1,0 +1,403 @@
+# DOKS (DigitalOcean Kubernetes) Production Values
+# Phase V: Cloud-Native Production System
+# Usage: helm upgrade --install ai-wealth ./helm/ai-wealth-companion -f values-doks.yaml
+
+# Global settings
+global:
+  namespace: ai-wealth
+  imagePullPolicy: Always
+  environment: production
+
+# Docker Registry Configuration for DOKS
+imageRegistry:
+  registry: "docker.io"
+  pullSecretName: "dockerhub-secret"
+
+# Backend (FastAPI) configuration - Production
+backend:
+  enabled: true
+  name: backend
+  replicaCount: 2  # High availability
+
+  image:
+    repository: ""  # Set via --set or DOCKER_USERNAME env
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+
+  # Production resource limits
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  healthCheck:
+    livenessPath: /health
+    readinessPath: /health/ready
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  # Dapr sidecar configuration
+  dapr:
+    enabled: true
+    appId: backend
+    appPort: 8000
+    logLevel: info
+    enableMetrics: true
+    metricsPort: 9090
+
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  env:
+    APP_NAME: "AI Wealth & Spending Companion"
+    APP_VERSION: "5.0.0"
+    DEBUG: "false"
+    LOG_LEVEL: "INFO"
+
+# Frontend (Next.js) configuration - Production
+frontend:
+  enabled: true
+  name: frontend
+  replicaCount: 2  # High availability
+
+  image:
+    repository: ""  # Set via --set or DOCKER_USERNAME env
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+
+  # Production resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  healthCheck:
+    livenessPath: /
+    readinessPath: /
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+
+  # Dapr sidecar configuration
+  dapr:
+    enabled: true
+    appId: frontend
+    appPort: 3000
+    logLevel: info
+    enableMetrics: true
+
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  env:
+    NODE_ENV: production
+    NEXT_TELEMETRY_DISABLED: "1"
+
+# MCP Server configuration - Production
+mcpServer:
+  enabled: true
+  name: mcp-server
+  replicaCount: 2
+
+  image:
+    repository: ""  # Set via --set or DOCKER_USERNAME env
+    tag: latest
+    pullPolicy: Always
+
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+
+  # Production resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+  # Dapr sidecar configuration
+  dapr:
+    enabled: true
+    appId: mcp-server
+    appPort: 8080
+    logLevel: info
+    enableMetrics: true
+
+  # Rolling update strategy
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+# Ingress configuration - Production with TLS
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-wealth.example.com  # Update with your domain
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  tls:
+    enabled: true
+    secretName: ai-wealth-tls
+
+# ConfigMap settings - Production
+config:
+  appName: "AI Wealth & Spending Companion"
+  appVersion: "5.0.0"
+  debug: "false"
+  corsOrigins: "https://ai-wealth.example.com"
+  backendUrl: "http://backend:8000"
+  mcpServerUrl: "http://mcp-server:8080"
+
+# Secrets configuration
+secrets:
+  database:
+    existingSecret: db-credentials
+    urlKey: DATABASE_URL
+  jwt:
+    existingSecret: jwt-secret
+    secretKey: JWT_SECRET_KEY
+  ai:
+    existingSecret: ai-credentials
+    geminiKey: GEMINI_API_KEY
+    openaiKey: OPENAI_API_KEY
+  oauth:
+    existingSecret: oauth-credentials
+    googleClientId: GOOGLE_CLIENT_ID
+    googleClientSecret: GOOGLE_CLIENT_SECRET
+    githubClientId: GITHUB_CLIENT_ID
+    githubClientSecret: GITHUB_CLIENT_SECRET
+
+# Horizontal Pod Autoscaler - Enabled for production
+autoscaling:
+  enabled: true
+  backend:
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  frontend:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  mcpServer:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+
+# Pod disruption budget - Enabled for HA
+podDisruptionBudget:
+  enabled: true
+  backend:
+    minAvailable: 1
+  frontend:
+    minAvailable: 1
+  mcpServer:
+    minAvailable: 1
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ai-wealth-companion
+  annotations:
+    # For DOKS workload identity if needed
+    kubernetes.io/enforce-mountable-secrets: "true"
+
+# Kafka Configuration
+kafka:
+  enabled: true
+  clusterName: ai-wealth-kafka
+  replicas: 3
+  storage:
+    size: 10Gi
+    storageClass: do-block-storage
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  topics:
+    - name: transactions
+      partitions: 3
+      replicas: 2
+      config:
+        retention.ms: "604800000"  # 7 days
+    - name: budget-alerts
+      partitions: 3
+      replicas: 2
+      config:
+        retention.ms: "86400000"  # 1 day
+    - name: ai-insights
+      partitions: 3
+      replicas: 2
+      config:
+        retention.ms: "604800000"  # 7 days
+    - name: notifications
+      partitions: 3
+      replicas: 2
+      config:
+        retention.ms: "86400000"  # 1 day
+    - name: dead-letter
+      partitions: 1
+      replicas: 2
+      config:
+        retention.ms: "2592000000"  # 30 days
+
+# Dapr Configuration
+dapr:
+  enabled: true
+  pubsub:
+    name: pubsub
+    type: pubsub.kafka
+  statestore:
+    name: statestore
+    type: state.redis
+  secretstore:
+    name: secretstore
+    type: secretstores.kubernetes
+  # Tracing configuration with Jaeger
+  tracing:
+    samplingRate: "1"  # 100% sampling in production; reduce for high traffic
+    otelEndpoint: "http://jaeger-collector:4317"
+    zipkinEndpoint: "http://jaeger-collector:9411/api/v2/spans"
+  # Metrics configuration
+  metrics:
+    enabled: true
+    port: 9090
+  # Rate limiting
+  rateLimit:
+    maxRequestsPerSecond: 100
+  # Retry configuration
+  retry:
+    maxRetries: 3
+    retryInterval: "500ms"
+    perTryTimeout: "5s"
+  # Access control (enable for strict security)
+  accessControl:
+    enabled: false  # Set to true to enable mTLS and strict access control
+    trustDomain: "ai-wealth"
+
+# Redis Configuration (for Dapr state store and idempotency)
+redis:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# Observability Configuration
+observability:
+  enabled: true
+  prometheus:
+    enabled: true
+    serviceMonitor: true
+  grafana:
+    enabled: true
+  jaeger:
+    enabled: true
+  loki:
+    enabled: true
+
+# Node selector for DOKS
+nodeSelector:
+  kubernetes.io/os: linux
+
+# Tolerations
+tolerations: []
+
+# Affinity - Spread pods across nodes
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - backend
+                  - frontend
+                  - mcp-server
+          topologyKey: kubernetes.io/hostname
+
+# Priority Class
+priorityClassName: ""
+
+# Security Context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Pod Security Context
+podSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+# Security Hardening
+security:
+  # Network policies for pod-to-pod security
+  networkPolicies:
+    enabled: true
+  # Pod Security Standards enforcement
+  podSecurityStandards:
+    enforce: restricted
+  # RBAC
+  rbac:
+    enabled: true
+    # Create minimal roles for service accounts
+    createRoles: true
+
+# Rate Limiting (applied via ingress)
+rateLimit:
+  enabled: true
+  rps: 100  # Requests per second
+  connections: 50  # Max concurrent connections

@@ -1,0 +1,111 @@
+# Phase V: Dapr Configuration with Jaeger Tracing
+# AI Wealth Companion Cloud-Native System
+---
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: ai-wealth-config
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.labels" . | nindent 4 }}
+spec:
+  # Tracing configuration with Jaeger
+  tracing:
+    samplingRate: "{{ .Values.dapr.tracing.samplingRate | default "1" }}"
+    otel:
+      endpointAddress: "{{ .Values.dapr.tracing.otelEndpoint | default "http://jaeger-collector:4317" }}"
+      isSecure: false
+      protocol: grpc
+    zipkin:
+      endpointAddress: "{{ .Values.dapr.tracing.zipkinEndpoint | default "http://jaeger-collector:9411/api/v2/spans" }}"
+
+  # Metrics configuration for Prometheus
+  metrics:
+    enabled: {{ .Values.dapr.metrics.enabled | default true }}
+    port: {{ .Values.dapr.metrics.port | default 9090 }}
+
+  # Middleware pipeline for HTTP
+  httpPipeline:
+    handlers:
+      - name: ratelimit
+        type: middleware.http.ratelimit
+      - name: retry
+        type: middleware.http.retry
+
+  # Access control (optional - enable in production)
+  {{- if .Values.dapr.accessControl.enabled }}
+  accessControl:
+    defaultAction: deny
+    trustDomain: "{{ .Values.dapr.accessControl.trustDomain | default "ai-wealth" }}"
+    policies:
+      - appId: backend
+        defaultAction: allow
+        trustDomain: "ai-wealth"
+        namespace: {{ include "ai-wealth-companion.namespace" . }}
+      - appId: frontend
+        defaultAction: allow
+        trustDomain: "ai-wealth"
+        namespace: {{ include "ai-wealth-companion.namespace" . }}
+      - appId: mcp-server
+        defaultAction: allow
+        trustDomain: "ai-wealth"
+        namespace: {{ include "ai-wealth-companion.namespace" . }}
+  {{- end }}
+
+  # API configuration
+  api:
+    allowed:
+      - name: state
+        version: v1.0
+        protocol: http
+      - name: publish
+        version: v1.0
+        protocol: http
+      - name: bindings
+        version: v1.0
+        protocol: http
+      - name: invoke
+        version: v1.0
+        protocol: http
+      - name: secrets
+        version: v1.0
+        protocol: http
+      - name: actors
+        version: v1.0
+        protocol: http
+---
+# Rate Limit Middleware Component
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: ratelimit
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.labels" . | nindent 4 }}
+spec:
+  type: middleware.http.ratelimit
+  version: v1
+  metadata:
+    - name: maxRequestsPerSecond
+      value: "{{ .Values.dapr.rateLimit.maxRequestsPerSecond | default 100 }}"
+    - name: key
+      value: "remote_ip"
+---
+# Retry Middleware Component
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: retry
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.labels" . | nindent 4 }}
+spec:
+  type: middleware.http.retry
+  version: v1
+  metadata:
+    - name: maxRetries
+      value: "{{ .Values.dapr.retry.maxRetries | default 3 }}"
+    - name: retryInterval
+      value: "{{ .Values.dapr.retry.retryInterval | default "500ms" }}"
+    - name: perTryTimeout
+      value: "{{ .Values.dapr.retry.perTryTimeout | default "5s" }}"
