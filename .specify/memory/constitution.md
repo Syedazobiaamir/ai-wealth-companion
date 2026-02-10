@@ -1,15 +1,18 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 2.0.0 → 3.0.0 (MAJOR - Phase IV Kubernetes Laws added)
+Version change: 3.0.0 → 4.0.0 (MAJOR - Phase V Cloud-Native Constitution added)
 Modified principles:
-  - Cloud-Native Design: Expanded with Kubernetes governance rules
+  - Cloud-Native Design: Expanded with DigitalOcean Kubernetes (DOKS) governance
+  - Technology Stack: Added Kafka, Dapr, event-driven components
 Added sections:
-  - Phase IV Laws – Local Kubernetes Deployment (complete new section)
-  - Kubernetes Governance Rules (NON-NEGOTIABLE)
-  - Forbidden Practices
-  - AI-Operated Kubernetes Laws
-  - Helm Chart Standards
+  - Phase V Laws – Cloud-Native Production (complete new section)
+  - Event-Driven Architecture Laws (Kafka + Dapr)
+  - Distributed Systems Governance
+  - Reliability Rules (idempotency, restart safety)
+  - Security Rules (DOKS Secrets, TLS, least privilege)
+  - AI Event Rules (agents consume/publish events)
+  - Operations Rules (Blue/Green, Rollbacks)
 Removed sections: None
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ (aligned)
@@ -22,7 +25,7 @@ Follow-up TODOs: None
 
 ## Mission Statement
 
-Build a governed AI financial assistant that can understand natural language, manage financial data, assist budgeting, analyze spending, predict investments, support Urdu language, accept voice commands, and operate using reusable intelligence through Claude Code. Deploy as a locally orchestrated, cloud-native system using Kubernetes, governed by specs and operated via AI tooling.
+Build a governed AI financial assistant that can understand natural language, manage financial data, assist budgeting, analyze spending, predict investments, support Urdu language, accept voice commands, and operate using reusable intelligence through Claude Code. Deploy as a distributed, event-driven, production-ready cloud system on DigitalOcean Kubernetes (DOKS), governed by specs and operated via AI tooling.
 
 ## Core Principles
 
@@ -83,20 +86,21 @@ and may violate regulations.
 
 ### IV. Cloud-Native Design (NON-NEGOTIABLE)
 
-The system MUST be designed for containerized, orchestrated deployment:
+The system MUST be designed for containerized, orchestrated, event-driven deployment:
 
 - Phase IV: Local Kubernetes via Minikube + Helm + kagent + kubectl-ai
-- Phase V: DigitalOcean Kubernetes + Kafka + Dapr
+- Phase V: DigitalOcean Kubernetes (DOKS) + Kafka + Dapr (event-driven architecture)
 - Microservices architecture with separate agents for Banking, Analytics,
   Notifications, and Investments
 - Services MUST be stateless; state persisted in external stores
-- All inter-service communication MUST use defined contracts (REST/gRPC/events)
+- All inter-service communication MUST use Dapr pub/sub (no direct Kafka SDK usage)
 - Configuration MUST be externalized via environment variables or ConfigMaps
 - Every service MUST be containerized with no local runtime dependencies
 - Helm charts MUST be the single source of truth for deployments
+- All services MUST be cloud-portable (no cloud-vendor lock-in)
 
 **Rationale**: Ensures scalability, resilience, and portability across local
-development and cloud production environments.
+development and cloud production environments with event-driven decoupling.
 
 ### V. Multi-Modal Interface (NON-NEGOTIABLE)
 
@@ -883,6 +887,213 @@ Architecture MUST be prepared for Phase V service mesh:
 | Secret Security | No secrets in plain text | Security scan |
 | Reproducibility | Fresh cluster matches existing | Diff test |
 
+## Phase V Laws – Cloud-Native Production (NON-NEGOTIABLE)
+
+Phase V deploys the AI-powered Wealth & Spending Companion as a distributed,
+event-driven, production-ready cloud system on DigitalOcean Kubernetes (DOKS).
+
+### Core Laws (NON-NEGOTIABLE)
+
+The following 5 laws are MANDATORY for Phase V development:
+
+1. **Spec-Driven Infrastructure Only**: Claude Code generates all manifests; no manual YAML editing
+2. **Event-Driven Architecture**: All inter-service communication via Kafka + Dapr pub/sub
+3. **Zero Manual kubectl in Production**: All production operations via spec-driven automation
+4. **Observability & Resilience Required**: All services MUST have logging, metrics, tracing, and health checks
+5. **Cloud-Portable Services**: All services MUST be deployable to any Kubernetes cluster
+
+**Rationale**: Ensures production-grade reliability, maintainability, and vendor independence.
+
+### Forbidden Practices (NON-NEGOTIABLE)
+
+The following practices are STRICTLY FORBIDDEN in Phase V:
+
+| Forbidden Practice | Violation Severity | Rationale |
+|--------------------|-------------------|-----------|
+| Local-only configurations | Critical | Breaks cloud deployment |
+| Hardcoded secrets anywhere | Critical | Security vulnerability |
+| Point-to-point service coupling | Critical | Violates event-driven architecture |
+| Direct Kafka SDK usage | High | MUST use Dapr abstraction |
+| Manual kubectl edits in prod | High | Breaks spec-driven workflow |
+| Services without health probes | Medium | Prevents proper orchestration |
+| Missing observability | Medium | Prevents debugging in production |
+
+**Rationale**: These practices undermine the distributed systems governance model.
+
+### Event-Driven Architecture Laws (NON-NEGOTIABLE)
+
+All service communication MUST follow event-driven patterns:
+
+**Dapr Pub/Sub Requirements**:
+- All inter-service messages MUST go through Dapr pub/sub components
+- Services MUST NOT import or use Kafka SDK directly
+- Events MUST be published to named topics with schemas
+- Event handlers MUST be idempotent (same event processed twice = same result)
+- Dead letter queues MUST be configured for failed messages
+
+**Event Schema Requirements**:
+```json
+{
+  "eventType": "string (e.g., TransactionCreated)",
+  "eventId": "uuid",
+  "timestamp": "ISO8601",
+  "source": "service-name",
+  "data": {},
+  "metadata": {
+    "correlationId": "uuid",
+    "userId": "string"
+  }
+}
+```
+
+**Topic Naming Convention**:
+- Pattern: `{domain}.{entity}.{action}` (e.g., `finance.transaction.created`)
+- All topics MUST be documented in `specs/events/`
+
+**Rationale**: Dapr abstraction enables service mesh portability and simplifies testing.
+
+### Distributed Systems Governance (NON-NEGOTIABLE)
+
+#### Reliability Rules
+
+All services MUST follow these reliability requirements:
+
+| Rule | Requirement | Enforcement |
+|------|-------------|-------------|
+| Event Idempotency | Processing same event twice produces same result | Event ID tracking |
+| Safe Restarts | Services restart without data loss or corruption | Stateless design |
+| Graceful Degradation | Services continue operating when dependencies fail | Circuit breakers |
+| Timeout Handling | All remote calls have explicit timeouts | Dapr configuration |
+| Retry Logic | Transient failures are automatically retried | Dapr resiliency |
+
+**Rationale**: Distributed systems fail partially; services MUST handle failures gracefully.
+
+#### Security Rules
+
+All services MUST follow these security requirements:
+
+| Rule | Requirement | Enforcement |
+|------|-------------|-------------|
+| Secret Storage | All secrets via DOKS Secrets | No env file commits |
+| TLS on Ingress | All external traffic encrypted | Ingress controller |
+| Least Privilege | Services have minimal required permissions | RBAC policies |
+| Network Policies | Services only communicate with allowed peers | K8s NetworkPolicy |
+| Audit Logging | Security events logged and monitored | Centralized logging |
+
+**Rationale**: Production systems require defense-in-depth security model.
+
+#### AI Event Rules
+
+All AI agents MUST follow these event-driven requirements:
+
+| Rule | Requirement | Enforcement |
+|------|-------------|-------------|
+| Event Consumption | AI agents subscribe to relevant domain events | Dapr subscriptions |
+| Insight Publishing | AI insights published as events to topics | Dapr pub/sub |
+| MCP via Service Mesh | MCP tools accessible through service mesh | Dapr service invocation |
+| Async Processing | AI processing MUST be asynchronous | Event-driven handlers |
+| Result Caching | AI results cached to avoid recomputation | Redis/Dapr state |
+
+**AI Event Topics**:
+- `ai.insight.spending` - Spending pattern insights
+- `ai.insight.budget` - Budget recommendations
+- `ai.insight.investment` - Investment suggestions
+- `ai.prediction.spending` - Spending forecasts
+- `ai.alert.anomaly` - Anomaly detections
+
+**Rationale**: AI agents become first-class event participants in the distributed system.
+
+#### Operations Rules
+
+All deployments MUST follow these operational requirements:
+
+| Rule | Requirement | Enforcement |
+|------|-------------|-------------|
+| Kubernetes Source of Truth | Cluster state defines system state | GitOps |
+| Blue/Green Deployments | Zero-downtime deployments via traffic shifting | Deployment strategy |
+| Rollback Support | Any deployment can be rolled back instantly | Helm history |
+| Health Monitoring | All services report health status | Liveness/Readiness |
+| Centralized Logging | All logs aggregated and searchable | Loki/ELK stack |
+| Metrics Collection | All services expose Prometheus metrics | Metrics endpoints |
+| Distributed Tracing | Request flows tracked across services | Jaeger/Zipkin |
+
+**Deployment Workflow**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Claude Code (Spec)                        │
+├─────────────────────────────────────────────────────────────┤
+│              Generate/Update Helm Charts                     │
+├─────────────────────────────────────────────────────────────┤
+│                 CI/CD Pipeline Validation                    │
+├─────────────────────────────────────────────────────────────┤
+│                Blue/Green Deployment to DOKS                 │
+├─────────────────────────────────────────────────────────────┤
+│                  Dapr Sidecar Injection                      │
+├─────────────────────────────────────────────────────────────┤
+│                Health Check Verification                     │
+├─────────────────────────────────────────────────────────────┤
+│              Traffic Shift (Canary → Full)                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Rationale**: Production operations require observability and safe deployment practices.
+
+### Phase V Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              DigitalOcean Kubernetes (DOKS)                  │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │                 Ingress (TLS Terminated)                ││
+│  └─────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Frontend   │  │   Backend    │  │  MCP Server  │      │
+│  │  + Dapr      │  │  + Dapr      │  │  + Dapr      │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │                  Dapr Pub/Sub (Kafka)                 │  │
+│  │  Topics: finance.*, ai.*, notification.*             │  │
+│  └──────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐    │
+│  │ Banking  │  │Analytics │  │Investment│  │ Notif.  │    │
+│  │  Agent   │  │  Agent   │  │  Agent   │  │ Agent   │    │
+│  │ + Dapr   │  │ + Dapr   │  │ + Dapr   │  │ + Dapr  │    │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────┘    │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌─────────────────┐                  │
+│  │   Kafka Cluster │  │   Redis Cache   │                  │
+│  │   (Strimzi)     │  │   (State Store) │                  │
+│  └─────────────────┘  └─────────────────┘                  │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │              Observability Stack                        ││
+│  │   Prometheus │ Grafana │ Loki │ Jaeger                 ││
+│  └─────────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │           DOKS Secrets & ConfigMaps                     ││
+│  └─────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Phase V Acceptance Criteria
+
+| Criterion | Requirement | Validation |
+|-----------|-------------|------------|
+| DOKS Deployment | All services deployed to DigitalOcean | `kubectl get pods` |
+| Dapr Integration | All services have Dapr sidecars | `dapr list` |
+| Event Flow | Events flow between services via Kafka | Integration test |
+| TLS Ingress | All external traffic TLS encrypted | SSL test |
+| Blue/Green Deploy | Zero-downtime deployments work | Deployment test |
+| Rollback | Rollback completes in < 2 minutes | Rollback test |
+| Observability | Metrics, logs, traces available | Dashboard check |
+| Secret Security | No secrets in plain text | Security scan |
+| Idempotency | Events processed idempotently | Replay test |
+
 ## Technology Stack
 
 **Backend**:
@@ -907,14 +1118,20 @@ Architecture MUST be prepared for Phase V service mesh:
 - NLP: Claude Code / OpenAI GPT
 - Predictions: Statistical models + ML
 
-**DevOps (Phase IV+)**:
+**DevOps (Phase IV)**:
 - Containerization: Docker
-- Orchestration: Kubernetes (Minikube → DigitalOcean)
+- Orchestration: Kubernetes (Minikube for local)
 - Package Manager: Helm
 - AI Operations: kubectl-ai
 - AI Workloads: kagent
-- Event streaming: Kafka (Phase V)
-- Service mesh: Dapr (Phase V)
+
+**Cloud-Native (Phase V)**:
+- Platform: DigitalOcean Kubernetes (DOKS)
+- Event Streaming: Kafka (via Strimzi operator)
+- Service Mesh: Dapr (pub/sub, state, service invocation)
+- Observability: Prometheus, Grafana, Loki, Jaeger
+- Secrets: DOKS Secrets Manager
+- CI/CD: GitHub Actions + ArgoCD
 
 ## AI Subagents & Skills Architecture
 
@@ -1025,13 +1242,15 @@ Architecture MUST be prepared for Phase V service mesh:
 - Infrastructure: Spec-driven, container-first
 - Purpose: Development and integration testing with cloud parity
 
-### Phase V: Cloud Production
+### Phase V: Cloud-Native Production 🔄 IN PROGRESS
 
-- Platform: DigitalOcean Kubernetes
-- Event streaming: Kafka
-- Service mesh: Dapr
-- Microservices: Banking, Analytics, Notifications, Investments
-- Purpose: Production deployment with scalability
+- Platform: DigitalOcean Kubernetes (DOKS)
+- Event Streaming: Kafka via Strimzi operator
+- Service Mesh: Dapr (pub/sub, state, service invocation)
+- Observability: Prometheus, Grafana, Loki, Jaeger
+- Architecture: Event-driven, distributed microservices
+- Governance: Spec-driven infra, zero manual kubectl in prod
+- Purpose: Production deployment with scalability, resilience, and observability
 
 ## Governance
 
@@ -1063,4 +1282,4 @@ Architecture MUST be prepared for Phase V service mesh:
 4. Implementation Plans (plan.md)
 5. Task Lists (tasks.md)
 
-**Version**: 3.0.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-02-09
+**Version**: 4.0.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-02-10

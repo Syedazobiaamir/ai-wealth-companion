@@ -1,0 +1,60 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-statestore
+  namespace: ai-wealth
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    # Redis connection
+    - name: redisHost
+      value: "redis-master:6379"
+
+    # Authentication (from Kubernetes secret)
+    - name: redisPassword
+      secretKeyRef:
+        name: redis-credentials
+        key: password
+
+    # State store settings
+    - name: actorStateStore
+      value: "true"
+
+    # Key prefix for isolation
+    - name: keyPrefix
+      value: "ai-wealth"
+
+    # TTL for state entries (7 days default)
+    - name: ttlInSeconds
+      value: "604800"
+
+    # Concurrency mode
+    - name: concurrency
+      value: "lastWrite"
+
+    # Consistency mode
+    - name: consistency
+      value: "eventual"
+
+---
+# Actor state store for AI agents
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: actor-statestore
+  namespace: ai-wealth
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: "redis-master:6379"
+    - name: redisPassword
+      secretKeyRef:
+        name: redis-credentials
+        key: password
+    - name: actorStateStore
+      value: "true"
+    - name: keyPrefix
+      value: "ai-wealth-actors"

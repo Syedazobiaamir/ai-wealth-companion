@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-wealth-companion.com/events/finance.budget.exceeded.json",
+  "title": "BudgetExceededEvent",
+  "description": "Event published when a user's spending exceeds their budget limit",
+  "type": "object",
+  "required": ["specversion", "id", "type", "source", "time", "datacontenttype", "data"],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "type": "string",
+      "const": "finance.budget.exceeded"
+    },
+    "source": {
+      "type": "string"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "datacontenttype": {
+      "type": "string",
+      "const": "application/json"
+    },
+    "correlationid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "data": {
+      "type": "object",
+      "required": ["userId", "budgetId", "category", "budgetAmount", "actualAmount", "percentOver", "period"],
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "budgetId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "category": {
+          "type": "string"
+        },
+        "budgetAmount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "actualAmount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "percentOver": {
+          "type": "number",
+          "minimum": 0
+        },
+        "period": {
+          "type": "string",
+          "enum": ["weekly", "monthly", "yearly"]
+        }
+      }
+    }
+  }
+}

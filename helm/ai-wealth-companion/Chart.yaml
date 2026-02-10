@@ -1,9 +1,9 @@
 apiVersion: v2
 name: ai-wealth-companion
-description: AI-powered Wealth & Spending Companion - Local Kubernetes Deployment
+description: AI-powered Wealth & Spending Companion - Cloud-Native Production System
 type: application
-version: 1.0.0
-appVersion: "4.0.0"
+version: 5.0.0
+appVersion: "5.0.0"
 
 maintainers:
   - name: AI Wealth Companion Team
@@ -15,6 +15,10 @@ keywords:
   - wealth-management
   - kubernetes
   - helm
+  - dapr
+  - kafka
+  - event-driven
+  - cloud-native
 
 home: https://github.com/ai-wealth-companion
 sources:
@@ -24,3 +28,12 @@ annotations:
   app.kubernetes.io/name: ai-wealth-companion
   app.kubernetes.io/part-of: ai-wealth-companion
   app.kubernetes.io/managed-by: helm
+  # Phase V Cloud-Native annotations
+  ai-wealth.io/phase: "v"
+  ai-wealth.io/features: "event-driven,dapr,kafka,observability"
+
+# Phase V Dependencies (informational - installed via scripts)
+# - Dapr Runtime 1.12+
+# - Strimzi Kafka Operator 0.38+
+# - NGINX Ingress Controller
+# - cert-manager (for TLS)

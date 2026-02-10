@@ -1,0 +1,123 @@
+{{- if .Values.dapr.enabled }}
+# Phase V: Dapr State Store Component (Redis)
+# AI Wealth Companion State Management and Idempotency
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{ .Values.dapr.statestore.name | default "statestore" }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: dapr-statestore
+    app.kubernetes.io/component: state-management
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  type: {{ .Values.dapr.statestore.type | default "state.redis" }}
+  version: v1
+  metadata:
+    # Redis connection
+    - name: redisHost
+      value: "redis.{{ .Values.global.namespace }}.svc.cluster.local:6379"
+
+    # Authentication (if required)
+    - name: redisPassword
+      secretKeyRef:
+        name: redis-credentials
+        key: password
+        optional: true
+
+    # Connection settings
+    - name: redisDB
+      value: "0"
+    - name: redisMaxRetries
+      value: "5"
+    - name: redisMaxRetryBackoff
+      value: "2s"
+    - name: redisMinRetryBackoff
+      value: "8ms"
+
+    # TTL for state entries (optional)
+    - name: ttlInSeconds
+      value: "3600"  # 1 hour default TTL
+
+    # Enable transactions for consistency
+    - name: enableTLS
+      value: "false"
+
+    # Concurrency mode
+    - name: actorStateStore
+      value: "true"
+
+  # Scopes - which apps can use this component
+  scopes:
+    - backend
+    - mcp-server
+---
+{{- if .Values.redis.enabled }}
+# Redis Deployment for State Store
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: redis
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  replicas: {{ .Values.redis.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          resources:
+            requests:
+              cpu: {{ .Values.redis.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.redis.resources.requests.memory | default "128Mi" }}
+            limits:
+              cpu: {{ .Values.redis.resources.limits.cpu | default "250m" }}
+              memory: {{ .Values.redis.resources.limits.memory | default "256Mi" }}
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: redis
+  selector:
+    app: redis
+{{- end }}
+{{- end }}

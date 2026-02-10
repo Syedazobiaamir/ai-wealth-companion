@@ -8,6 +8,15 @@ metadata:
     {{- include "ai-wealth-companion.mcpServer.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.mcpServer.replicaCount }}
+  {{- if .Values.mcpServer.strategy }}
+  strategy:
+    type: {{ .Values.mcpServer.strategy.type | default "RollingUpdate" }}
+    {{- if eq .Values.mcpServer.strategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.mcpServer.strategy.rollingUpdate.maxSurge | default 1 }}
+      maxUnavailable: {{ .Values.mcpServer.strategy.rollingUpdate.maxUnavailable | default 0 }}
+    {{- end }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-wealth-companion.mcpServer.selectorLabels" . | nindent 6 }}
@@ -17,6 +26,20 @@ spec:
         {{- include "ai-wealth-companion.mcpServer.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if and .Values.dapr .Values.dapr.enabled .Values.mcpServer.dapr .Values.mcpServer.dapr.enabled }}
+        # Dapr sidecar injection annotations
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "{{ .Values.mcpServer.dapr.appId | default .Values.mcpServer.name }}"
+        dapr.io/app-port: "{{ .Values.mcpServer.dapr.appPort | default .Values.mcpServer.service.targetPort }}"
+        dapr.io/log-level: "{{ .Values.mcpServer.dapr.logLevel | default "info" }}"
+        dapr.io/enable-metrics: "{{ .Values.mcpServer.dapr.enableMetrics | default true }}"
+        dapr.io/config: "ai-wealth-config"
+        # Dapr sidecar resource limits
+        dapr.io/sidecar-cpu-limit: "300m"
+        dapr.io/sidecar-cpu-request: "50m"
+        dapr.io/sidecar-memory-limit: "128Mi"
+        dapr.io/sidecar-memory-request: "32Mi"
+        {{- end }}
     spec:
       serviceAccountName: {{ include "ai-wealth-companion.serviceAccountName" . }}
       securityContext:

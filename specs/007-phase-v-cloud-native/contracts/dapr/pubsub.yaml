@@ -1,0 +1,75 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: kafka-pubsub
+  namespace: ai-wealth
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+    # Kafka broker connection
+    - name: brokers
+      value: "kafka-cluster-kafka-bootstrap:9092"
+
+    # Consumer group for this application
+    - name: consumerGroup
+      value: "ai-wealth-companion"
+
+    # Authentication (disabled for internal cluster)
+    - name: authRequired
+      value: "false"
+
+    # Message settings
+    - name: maxMessageBytes
+      value: "1048576"  # 1MB max message size
+
+    # Consumer settings
+    - name: consumeRetryInterval
+      value: "1000ms"
+    - name: consumeRetryEnabled
+      value: "true"
+
+    # Initial offset for new consumer groups
+    - name: initialOffset
+      value: "newest"
+
+    # CloudEvents format (Dapr default)
+    - name: disableTls
+      value: "true"  # TLS handled by Kafka internal network
+
+---
+# Dead Letter Queue configuration
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: transaction-created-subscription
+  namespace: ai-wealth
+spec:
+  pubsubname: kafka-pubsub
+  topic: finance.transaction.created
+  route: /events/transaction-created
+  deadLetterTopic: dlq.finance.transaction.created
+
+---
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: budget-exceeded-subscription
+  namespace: ai-wealth
+spec:
+  pubsubname: kafka-pubsub
+  topic: finance.budget.exceeded
+  route: /events/budget-exceeded
+  deadLetterTopic: dlq.finance.budget.exceeded
+
+---
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: ai-insight-subscription
+  namespace: ai-wealth
+spec:
+  pubsubname: kafka-pubsub
+  topic: ai.insight.generated
+  route: /events/ai-insight
+  deadLetterTopic: dlq.ai.insight.generated

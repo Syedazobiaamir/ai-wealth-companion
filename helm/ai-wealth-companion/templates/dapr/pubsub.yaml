@@ -1,0 +1,133 @@
+{{- if .Values.dapr.enabled }}
+# Phase V: Dapr Pub/Sub Component (Kafka)
+# AI Wealth Companion Event-Driven Messaging
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{ .Values.dapr.pubsub.name | default "pubsub" }}
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: dapr-pubsub
+    app.kubernetes.io/component: messaging
+    app.kubernetes.io/part-of: ai-wealth-companion
+spec:
+  type: {{ .Values.dapr.pubsub.type | default "pubsub.kafka" }}
+  version: v1
+  metadata:
+    # Kafka broker connection
+    - name: brokers
+      value: "{{ .Values.kafka.clusterName | default "ai-wealth-kafka" }}-kafka-bootstrap.{{ .Values.global.namespace }}.svc.cluster.local:9092"
+
+    # Consumer group
+    - name: consumerGroup
+      value: "ai-wealth-consumers"
+
+    # Authentication (if TLS enabled)
+    - name: authType
+      value: "none"  # Use "certificate" for TLS
+
+    # Retry configuration
+    - name: maxRetry
+      value: "3"
+    - name: backOffInitialInterval
+      value: "100ms"
+    - name: backOffMaxInterval
+      value: "60s"
+    - name: backOffMultiplier
+      value: "2"
+
+    # Consumer configuration
+    - name: consumeRetryInterval
+      value: "100ms"
+    - name: consumeRetryEnabled
+      value: "true"
+
+    # Producer configuration
+    - name: requiredAcks
+      value: "all"  # Wait for all replicas to acknowledge
+    - name: maxMessageBytes
+      value: "10485760"  # 10MB
+
+    # Timeouts
+    - name: clientConnectionTopicMetadataRefreshInterval
+      value: "5m"
+
+    # Dead letter topic
+    - name: disableEntityManagement
+      value: "false"
+
+  # Scopes - which apps can use this component
+  scopes:
+    - backend
+    - mcp-server
+---
+# Dead Letter Queue Subscription Configuration
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: dead-letter-subscription
+  namespace: {{ .Values.global.namespace }}
+spec:
+  pubsubname: {{ .Values.dapr.pubsub.name | default "pubsub" }}
+  topic: dead-letter
+  route: /events/dead-letter
+  deadLetterTopic: ""  # No DLQ for DLQ itself
+  scopes:
+    - backend
+---
+# Transaction Events Subscription
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: transaction-events-subscription
+  namespace: {{ .Values.global.namespace }}
+spec:
+  pubsubname: {{ .Values.dapr.pubsub.name | default "pubsub" }}
+  topic: transactions
+  route: /events/transactions
+  deadLetterTopic: dead-letter
+  scopes:
+    - backend
+---
+# Budget Alerts Subscription
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: budget-alerts-subscription
+  namespace: {{ .Values.global.namespace }}
+spec:
+  pubsubname: {{ .Values.dapr.pubsub.name | default "pubsub" }}
+  topic: budget-alerts
+  route: /events/budget-alerts
+  deadLetterTopic: dead-letter
+  scopes:
+    - backend
+---
+# AI Insights Subscription
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: ai-insights-subscription
+  namespace: {{ .Values.global.namespace }}
+spec:
+  pubsubname: {{ .Values.dapr.pubsub.name | default "pubsub" }}
+  topic: ai-insights
+  route: /events/ai-insights
+  deadLetterTopic: dead-letter
+  scopes:
+    - backend
+---
+# Notifications Subscription
+apiVersion: dapr.io/v1alpha1
+kind: Subscription
+metadata:
+  name: notifications-subscription
+  namespace: {{ .Values.global.namespace }}
+spec:
+  pubsubname: {{ .Values.dapr.pubsub.name | default "pubsub" }}
+  topic: notifications
+  route: /events/notifications
+  deadLetterTopic: dead-letter
+  scopes:
+    - backend
+{{- end }}

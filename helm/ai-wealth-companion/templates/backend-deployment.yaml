@@ -8,6 +8,15 @@ metadata:
     {{- include "ai-wealth-companion.backend.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.backend.replicaCount }}
+  {{- if .Values.backend.strategy }}
+  strategy:
+    type: {{ .Values.backend.strategy.type | default "RollingUpdate" }}
+    {{- if eq .Values.backend.strategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.backend.strategy.rollingUpdate.maxSurge | default 1 }}
+      maxUnavailable: {{ .Values.backend.strategy.rollingUpdate.maxUnavailable | default 0 }}
+    {{- end }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "ai-wealth-companion.backend.selectorLabels" . | nindent 6 }}
@@ -17,14 +26,38 @@ spec:
         {{- include "ai-wealth-companion.backend.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if and .Values.dapr .Values.dapr.enabled }}
+        # Dapr sidecar injection annotations
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "{{ .Values.backend.dapr.appId | default .Values.backend.name }}"
+        dapr.io/app-port: "{{ .Values.backend.dapr.appPort | default .Values.backend.service.targetPort }}"
+        dapr.io/log-level: "{{ .Values.backend.dapr.logLevel | default "info" }}"
+        dapr.io/enable-metrics: "{{ .Values.backend.dapr.enableMetrics | default true }}"
+        dapr.io/metrics-port: "{{ .Values.backend.dapr.metricsPort | default "9090" }}"
+        dapr.io/config: "ai-wealth-config"
+        dapr.io/enable-api-logging: "true"
+        # Dapr sidecar resource limits
+        dapr.io/sidecar-cpu-limit: "500m"
+        dapr.io/sidecar-cpu-request: "100m"
+        dapr.io/sidecar-memory-limit: "256Mi"
+        dapr.io/sidecar-memory-request: "64Mi"
+        {{- end }}
     spec:
       serviceAccountName: {{ include "ai-wealth-companion.serviceAccountName" . }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{ .Values.backend.name }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
           imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
           ports:
@@ -70,6 +103,16 @@ spec:
             periodSeconds: {{ .Values.backend.healthCheck.periodSeconds }}
             timeoutSeconds: {{ .Values.backend.healthCheck.timeoutSeconds }}
             failureThreshold: {{ .Values.backend.healthCheck.failureThreshold }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /home/app/.cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

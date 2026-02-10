@@ -1,6 +1,8 @@
 """Transaction service for business logic."""
 
+import logging
 from datetime import date, datetime
+from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
@@ -16,12 +18,27 @@ from src.models.transaction import (
 )
 from src.repositories.transaction import TransactionRepository
 
+# Phase V: Event-driven imports
+try:
+    from src.events import (
+        TransactionCreatedEvent,
+        TransactionUpdatedEvent,
+        TransactionData,
+        publish_event,
+    )
+    EVENTS_ENABLED = True
+except ImportError:
+    EVENTS_ENABLED = False
+
+logger = logging.getLogger(__name__)
+
 
 class TransactionService:
     """Service for transaction operations."""
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, enable_events: bool = True):
         self.repository = TransactionRepository(session)
+        self.events_enabled = enable_events and EVENTS_ENABLED
 
     async def get_all(
         self,
@@ -144,7 +161,40 @@ class TransactionService:
     ) -> TransactionRead:
         """Create a new transaction for a user."""
         transaction = await self.repository.create_with_user(user_id, data)
-        return TransactionRead.model_validate(transaction)
+        result = TransactionRead.model_validate(transaction)
+
+        # Phase V: Publish transaction.created event
+        if self.events_enabled:
+            await self._publish_transaction_created(transaction, user_id)
+
+        return result
+
+    async def _publish_transaction_created(
+        self,
+        transaction: Transaction,
+        user_id: UUID,
+    ) -> None:
+        """Publish a transaction.created event to Kafka via Dapr."""
+        try:
+            event = TransactionCreatedEvent(
+                subject=str(user_id),
+                data=TransactionData(
+                    transaction_id=transaction.id,
+                    user_id=user_id,
+                    wallet_id=transaction.wallet_id,
+                    amount=Decimal(str(transaction.amount)),
+                    currency="USD",
+                    category_id=transaction.category_id,
+                    description=transaction.note,
+                    transaction_type=transaction.type.value if hasattr(transaction.type, 'value') else str(transaction.type),
+                    transaction_date=transaction.transaction_date,
+                ),
+            )
+            await publish_event(event, "transactions")
+            logger.info(f"Published transaction.created event: {event.id}")
+        except Exception as e:
+            # Log but don't fail the transaction
+            logger.error(f"Failed to publish transaction.created event: {e}")
 
     async def update(
         self,
@@ -157,6 +207,10 @@ class TransactionService:
         if not transaction:
             return None
 
+        # Store previous values for event
+        previous_amount = Decimal(str(transaction.amount)) if transaction.amount else None
+        previous_category_id = transaction.category_id
+
         update_data = data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(transaction, field, value)
@@ -165,7 +219,47 @@ class TransactionService:
         self.repository.session.add(transaction)
         await self.repository.session.flush()
         await self.repository.session.refresh(transaction)
-        return TransactionRead.model_validate(transaction)
+
+        result = TransactionRead.model_validate(transaction)
+
+        # Phase V: Publish transaction.updated event
+        if self.events_enabled:
+            await self._publish_transaction_updated(
+                transaction, user_id, previous_amount, previous_category_id
+            )
+
+        return result
+
+    async def _publish_transaction_updated(
+        self,
+        transaction: Transaction,
+        user_id: UUID,
+        previous_amount: Optional[Decimal],
+        previous_category_id: Optional[UUID],
+    ) -> None:
+        """Publish a transaction.updated event to Kafka via Dapr."""
+        try:
+            event = TransactionUpdatedEvent(
+                subject=str(user_id),
+                previous_amount=previous_amount,
+                previous_category_id=previous_category_id,
+                data=TransactionData(
+                    transaction_id=transaction.id,
+                    user_id=user_id,
+                    wallet_id=transaction.wallet_id,
+                    amount=Decimal(str(transaction.amount)),
+                    currency="USD",
+                    category_id=transaction.category_id,
+                    description=transaction.note,
+                    transaction_type=transaction.type.value if hasattr(transaction.type, 'value') else str(transaction.type),
+                    transaction_date=transaction.transaction_date,
+                ),
+            )
+            await publish_event(event, "transactions")
+            logger.info(f"Published transaction.updated event: {event.id}")
+        except Exception as e:
+            # Log but don't fail the transaction
+            logger.error(f"Failed to publish transaction.updated event: {e}")
 
     async def delete(self, user_id: UUID, transaction_id: UUID) -> bool:
         """Soft delete a transaction for a user."""
