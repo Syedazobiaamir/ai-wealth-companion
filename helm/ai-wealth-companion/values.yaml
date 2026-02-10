@@ -1,0 +1,196 @@
+# Default values for ai-wealth-companion
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  namespace: ai-wealth
+  imagePullPolicy: IfNotPresent
+  environment: development
+
+# Docker Registry Configuration
+# For Docker Hub: set registry to "docker.io" and update repository to "username/image-name"
+# For local Minikube: leave registry empty and use "ai-wealth-companion/backend"
+imageRegistry:
+  # Docker Hub registry (set to your Docker Hub username)
+  # Example: "docker.io/yourusername" or just "yourusername"
+  registry: ""
+  # Pull secret name (create with: kubectl create secret docker-registry dockerhub-secret ...)
+  pullSecretName: ""
+
+# Backend (FastAPI) configuration
+backend:
+  enabled: true
+  name: backend
+  replicaCount: 1
+
+  image:
+    # For Docker Hub: "yourusername/ai-wealth-backend"
+    # For local Minikube: "ai-wealth-companion/backend"
+    repository: ai-wealth-companion/backend
+    tag: dev
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  healthCheck:
+    livenessPath: /health
+    readinessPath: /health/ready
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  env:
+    APP_NAME: "AI Wealth & Spending Companion"
+    APP_VERSION: "4.0.0"
+    DEBUG: "false"
+
+# Frontend (Next.js) configuration
+frontend:
+  enabled: true
+  name: frontend
+  replicaCount: 1
+
+  image:
+    # For Docker Hub: "yourusername/ai-wealth-frontend"
+    # For local Minikube: "ai-wealth-companion/frontend"
+    repository: ai-wealth-companion/frontend
+    tag: dev
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+  healthCheck:
+    livenessPath: /
+    readinessPath: /
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  env:
+    NODE_ENV: production
+
+# MCP Server configuration
+mcpServer:
+  enabled: true
+  name: mcp-server
+  replicaCount: 1
+
+  image:
+    repository: ai-wealth-companion/backend
+    tag: dev
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+  healthCheck:
+    livenessPath: /health
+    readinessPath: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-wealth.local
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  tls:
+    enabled: false
+    secretName: ""
+
+# ConfigMap settings
+config:
+  appName: "AI Wealth & Spending Companion"
+  appVersion: "4.0.0"
+  debug: "false"
+  corsOrigins: "http://frontend:3000,http://localhost:3000"
+  # Internal service URLs for service mesh readiness
+  backendUrl: "http://backend:8000"
+  mcpServerUrl: "http://mcp-server:8080"
+
+# Secrets configuration
+# These reference external Kubernetes secrets created separately
+secrets:
+  database:
+    existingSecret: db-credentials
+    urlKey: DATABASE_URL
+  jwt:
+    existingSecret: jwt-secret
+    secretKey: JWT_SECRET_KEY
+  ai:
+    existingSecret: ai-credentials
+    geminiKey: GEMINI_API_KEY
+    openaiKey: OPENAI_API_KEY
+  oauth:
+    existingSecret: oauth-credentials
+    googleClientId: GOOGLE_CLIENT_ID
+    googleClientSecret: GOOGLE_CLIENT_SECRET
+    githubClientId: GITHUB_CLIENT_ID
+    githubClientSecret: GITHUB_CLIENT_SECRET
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# Service Account
+serviceAccount:
+  create: true
+  name: ai-wealth-companion
+  annotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

@@ -1,0 +1,48 @@
+# Docker Hub deployment values
+# Usage:
+#   1. Replace YOUR_DOCKER_USERNAME with your Docker Hub username
+#   2. Push images: DOCKER_USERNAME=yourusername ./scripts/k8s-deploy.sh --dockerhub
+#   3. Deploy: helm install ai-wealth ./helm/ai-wealth-companion -f ./helm/ai-wealth-companion/values-dockerhub.yaml
+
+# Docker Registry Configuration for Docker Hub
+imageRegistry:
+  registry: "docker.io"
+  # Create pull secret: kubectl create secret docker-registry dockerhub-secret \
+  #   --docker-server=docker.io \
+  #   --docker-username=YOUR_DOCKER_USERNAME \
+  #   --docker-password=YOUR_DOCKER_TOKEN \
+  #   -n ai-wealth
+  pullSecretName: "dockerhub-secret"
+
+# Backend image from Docker Hub
+backend:
+  image:
+    repository: YOUR_DOCKER_USERNAME/ai-wealth-backend
+    tag: latest
+    pullPolicy: Always
+
+# Frontend image from Docker Hub
+frontend:
+  image:
+    repository: YOUR_DOCKER_USERNAME/ai-wealth-frontend
+    tag: latest
+    pullPolicy: Always
+
+# MCP Server (uses backend image)
+mcpServer:
+  image:
+    repository: YOUR_DOCKER_USERNAME/ai-wealth-backend
+    tag: latest
+    pullPolicy: Always
+
+# Enable autoscaling for production-like setup
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilization: 70
+
+# Enable pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

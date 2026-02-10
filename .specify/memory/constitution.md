@@ -1,18 +1,15 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.3.0 → 2.0.0 (MAJOR - Phase III AI Agent Laws added)
+Version change: 2.0.0 → 3.0.0 (MAJOR - Phase IV Kubernetes Laws added)
 Modified principles:
-  - AI-First Architecture: Expanded with MCP, OpenAI SDK requirements
-  - Multi-Modal Interface: Enhanced with voice and Urdu requirements
-  - Technology Stack: Added OpenAI ChatKit, Agents SDK, MCP SDK
+  - Cloud-Native Design: Expanded with Kubernetes governance rules
 Added sections:
-  - Phase III Laws – AI Financial Assistant (complete new section)
-  - AI Safety & Governance Laws
-  - MCP Communication Contract
-  - Voice Pipeline Governance
-  - Bilingual Output Requirements (Urdu + English)
-  - Agent Routing Rules
+  - Phase IV Laws – Local Kubernetes Deployment (complete new section)
+  - Kubernetes Governance Rules (NON-NEGOTIABLE)
+  - Forbidden Practices
+  - AI-Operated Kubernetes Laws
+  - Helm Chart Standards
 Removed sections: None
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ (aligned)
@@ -25,7 +22,7 @@ Follow-up TODOs: None
 
 ## Mission Statement
 
-Build a governed AI financial assistant that can understand natural language, manage financial data, assist budgeting, analyze spending, predict investments, support Urdu language, accept voice commands, and operate using reusable intelligence through Claude Code.
+Build a governed AI financial assistant that can understand natural language, manage financial data, assist budgeting, analyze spending, predict investments, support Urdu language, accept voice commands, and operate using reusable intelligence through Claude Code. Deploy as a locally orchestrated, cloud-native system using Kubernetes, governed by specs and operated via AI tooling.
 
 ## Core Principles
 
@@ -84,17 +81,19 @@ User financial data MUST be protected at all times:
 **Rationale**: Financial data is highly sensitive; privacy violations destroy user trust
 and may violate regulations.
 
-### IV. Cloud-Native Design
+### IV. Cloud-Native Design (NON-NEGOTIABLE)
 
 The system MUST be designed for containerized, orchestrated deployment:
 
-- Phase IV: Local Kubernetes via Minikube + Helm + kagent
+- Phase IV: Local Kubernetes via Minikube + Helm + kagent + kubectl-ai
 - Phase V: DigitalOcean Kubernetes + Kafka + Dapr
 - Microservices architecture with separate agents for Banking, Analytics,
   Notifications, and Investments
 - Services MUST be stateless; state persisted in external stores
 - All inter-service communication MUST use defined contracts (REST/gRPC/events)
 - Configuration MUST be externalized via environment variables or ConfigMaps
+- Every service MUST be containerized with no local runtime dependencies
+- Helm charts MUST be the single source of truth for deployments
 
 **Rationale**: Ensures scalability, resilience, and portability across local
 development and cloud production environments.
@@ -662,6 +661,228 @@ The system MUST include predictive analytics:
 | InsightPanel | AI-generated insights feed |
 | VoiceWaveform | Visual feedback during voice input |
 
+## Phase IV Laws – Local Kubernetes Deployment (NON-NEGOTIABLE)
+
+Phase IV deploys the AI-powered Wealth & Spending Companion as a locally orchestrated,
+cloud-native system using Kubernetes, governed by specs and operated via AI tooling.
+
+### Core Principles (NON-NEGOTIABLE)
+
+The following 4 principles are MANDATORY for Phase IV development:
+
+1. **Spec-Driven Infrastructure**: No manual kubectl YAML writing; Claude Code generates infra from specs
+2. **Container First**: Every service MUST be containerized with no local runtime dependencies
+3. **AI-Operated Kubernetes**: kubectl-ai MUST be used for cluster operations; kagent MUST be used for AI-managed workloads
+4. **Local Cloud Parity**: Minikube MUST simulate real cloud; Helm charts MUST be cloud-ready
+
+**Rationale**: Ensures infrastructure-as-code, reproducibility, and seamless
+transition from local development to cloud production.
+
+### Forbidden Practices (NON-NEGOTIABLE)
+
+The following practices are STRICTLY FORBIDDEN in Phase IV:
+
+| Forbidden Practice | Violation Severity | Rationale |
+|--------------------|-------------------|-----------|
+| Manual `kubectl apply` without spec | Critical | Breaks spec-driven workflow |
+| Single-container monolith | Critical | Violates microservices architecture |
+| Hardcoded secrets in code/YAML | Critical | Security vulnerability |
+| Non-reproducible clusters | High | Prevents consistent deployments |
+| Direct pod manipulation | High | Bypasses Helm governance |
+| Inline environment values | Medium | Should use ConfigMaps/Secrets |
+
+**Rationale**: These practices undermine the governance model and create technical debt.
+
+### Kubernetes Governance Rules (NON-NEGOTIABLE)
+
+All Kubernetes deployments MUST follow these rules:
+
+| Rule | Requirement | Enforcement |
+|------|-------------|-------------|
+| Pod Isolation | Each service runs in its own Pod | Helm templates |
+| Service Communication | Communication via Kubernetes Services ONLY | Network policies |
+| Secret Management | Secrets injected via env vars from K8s Secrets | No hardcoding |
+| MCP Statelessness | MCP servers MUST be stateless | No PersistentVolumes for MCP |
+| Agent Scaling | Agents MUST scale independently | HPA configurations |
+| Helm Governance | Helm is the SINGLE source of truth | No raw kubectl apply |
+| AI Operations | kubectl-ai controls cluster operations | Operator scripts |
+| AI Workloads | kagent governs all AI workloads | Agent manifests |
+
+**Rationale**: Ensures consistent, secure, and scalable Kubernetes deployments.
+
+### AI-Operated Kubernetes Laws (NON-NEGOTIABLE)
+
+All Kubernetes operations MUST be AI-assisted:
+
+**kubectl-ai Requirements**:
+- All cluster queries MUST use kubectl-ai for natural language interface
+- Deployment commands MUST be validated by kubectl-ai before execution
+- Troubleshooting MUST leverage kubectl-ai for log analysis
+- Resource recommendations MUST come from kubectl-ai insights
+
+**kagent Requirements**:
+- All AI agent pods MUST be managed by kagent
+- Agent scaling decisions MUST be governed by kagent policies
+- Agent health monitoring MUST be handled by kagent
+- Cross-agent communication MUST be orchestrated by kagent
+
+**Workflow**:
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Claude Code (Spec)                      │
+├─────────────────────────────────────────────────────────┤
+│              Generate Helm Templates                     │
+├─────────────────────────────────────────────────────────┤
+│                kubectl-ai Validation                     │
+├─────────────────────────────────────────────────────────┤
+│                  Helm Install/Upgrade                    │
+├─────────────────────────────────────────────────────────┤
+│              kagent AI Workload Setup                    │
+├─────────────────────────────────────────────────────────┤
+│                 Minikube Cluster                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Rationale**: AI-operated infrastructure reduces human error and enables
+intelligent cluster management.
+
+### Helm Chart Standards (NON-NEGOTIABLE)
+
+All Kubernetes resources MUST be defined in Helm charts:
+
+**Chart Structure**:
+```
+helm/
+├── ai-wealth-companion/
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   ├── values-dev.yaml
+│   ├── values-prod.yaml
+│   ├── templates/
+│   │   ├── _helpers.tpl
+│   │   ├── backend-deployment.yaml
+│   │   ├── backend-service.yaml
+│   │   ├── frontend-deployment.yaml
+│   │   ├── frontend-service.yaml
+│   │   ├── mcp-server-deployment.yaml
+│   │   ├── mcp-server-service.yaml
+│   │   ├── agents/
+│   │   │   ├── banking-agent.yaml
+│   │   │   ├── analytics-agent.yaml
+│   │   │   ├── investment-agent.yaml
+│   │   │   └── notification-agent.yaml
+│   │   ├── configmap.yaml
+│   │   ├── secrets.yaml
+│   │   ├── ingress.yaml
+│   │   └── hpa.yaml
+│   └── charts/
+│       └── (dependencies)
+```
+
+**Chart Requirements**:
+- All values MUST be parameterized in `values.yaml`
+- Environment-specific overrides MUST use `values-{env}.yaml`
+- All secrets MUST use Kubernetes Secrets (not inline)
+- Resource limits MUST be defined for all containers
+- Health probes MUST be configured for all services
+- Labels MUST follow Kubernetes recommended conventions
+
+**Rationale**: Helm provides versioned, reproducible, and auditable deployments.
+
+### Container Requirements (NON-NEGOTIABLE)
+
+All services MUST follow container best practices:
+
+**Dockerfile Standards**:
+- Multi-stage builds MUST be used to minimize image size
+- Non-root users MUST be used for running applications
+- Health check instructions MUST be included
+- Labels MUST include version, maintainer, and description
+- No secrets in Dockerfiles or image layers
+
+**Image Registry**:
+- Images MUST be tagged with semantic versions
+- Latest tag MUST NOT be used in production
+- Images MUST be scanned for vulnerabilities
+- Base images MUST be from trusted sources
+
+**Example Dockerfile Pattern**:
+```dockerfile
+# Build stage
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Runtime stage
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY . .
+USER 1000
+HEALTHCHECK CMD curl -f http://localhost:8000/health || exit 1
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+**Rationale**: Secure, efficient containers are essential for production-grade deployments.
+
+### Service Mesh Readiness (NON-NEGOTIABLE)
+
+Architecture MUST be prepared for Phase V service mesh:
+
+- Services MUST NOT rely on direct pod-to-pod communication
+- All inter-service calls MUST go through Kubernetes Services
+- Retry and timeout logic MUST be externalized (ready for Dapr)
+- Circuit breaker patterns MUST be implemented at service level
+- Distributed tracing headers MUST be propagated
+
+**Rationale**: Enables seamless transition to Dapr service mesh in Phase V.
+
+### Phase IV Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Minikube Cluster                      │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐│
+│  │                    Ingress                          ││
+│  └─────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
+│  │   Frontend   │  │   Backend    │  │  MCP Server  │  │
+│  │    (Pod)     │  │    (Pod)     │  │    (Pod)     │  │
+│  │   Next.js    │  │   FastAPI    │  │  Stateless   │  │
+│  └──────────────┘  └──────────────┘  └──────────────┘  │
+├─────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │
+│  │ Banking  │  │Analytics │  │Investment│  │ Notif.  │ │
+│  │  Agent   │  │  Agent   │  │  Agent   │  │ Agent   │ │
+│  │  (Pod)   │  │  (Pod)   │  │  (Pod)   │  │ (Pod)   │ │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────┘ │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐│
+│  │              kagent (AI Workload Manager)           ││
+│  └─────────────────────────────────────────────────────┘│
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐│
+│  │           ConfigMaps & Secrets                      ││
+│  └─────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────┘
+```
+
+### Phase IV Acceptance Criteria
+
+| Criterion | Requirement | Validation |
+|-----------|-------------|------------|
+| Cluster Setup | Minikube starts with single command | `minikube start` |
+| Helm Deploy | All services deploy via Helm | `helm install` |
+| Service Health | All pods reach Ready state | `kubectl get pods` |
+| Ingress Access | Frontend accessible via ingress | Browser test |
+| API Connectivity | Frontend connects to backend | E2E test |
+| Agent Scaling | Agents scale based on load | HPA test |
+| Secret Security | No secrets in plain text | Security scan |
+| Reproducibility | Fresh cluster matches existing | Diff test |
+
 ## Technology Stack
 
 **Backend**:
@@ -686,11 +907,14 @@ The system MUST include predictive analytics:
 - NLP: Claude Code / OpenAI GPT
 - Predictions: Statistical models + ML
 
-**DevOps**:
+**DevOps (Phase IV+)**:
 - Containerization: Docker
 - Orchestration: Kubernetes (Minikube → DigitalOcean)
-- Event streaming: Kafka
-- Service mesh: Dapr
+- Package Manager: Helm
+- AI Operations: kubectl-ai
+- AI Workloads: kagent
+- Event streaming: Kafka (Phase V)
+- Service mesh: Dapr (Phase V)
 
 ## AI Subagents & Skills Architecture
 
@@ -782,9 +1006,9 @@ The system MUST include predictive analytics:
 - Authentication: JWT-based
 - Purpose: Web-based financial management with modern UI
 
-### Phase III: AI Financial Assistant 🔄 IN PROGRESS
+### Phase III: AI Financial Assistant ✅ COMPLETE
 
-- AI Framework: OpenAI Agents SDK
+- AI Framework: OpenAI Agents SDK / Gemini
 - Chat UI: OpenAI ChatKit UI
 - Tool Protocol: Official MCP SDK
 - Voice: STT/TTS integration
@@ -792,12 +1016,14 @@ The system MUST include predictive analytics:
 - Predictions: Spending and investment forecasts
 - Purpose: Intelligent conversational financial assistant
 
-### Phase IV: Local Kubernetes
+### Phase IV: Local Kubernetes 🔄 IN PROGRESS
 
 - Platform: Minikube
 - Packaging: Helm charts
-- Agent orchestration: kagent
-- Purpose: Development and integration testing
+- AI Operations: kubectl-ai
+- Agent Orchestration: kagent
+- Infrastructure: Spec-driven, container-first
+- Purpose: Development and integration testing with cloud parity
 
 ### Phase V: Cloud Production
 
@@ -827,6 +1053,7 @@ The system MUST include predictive analytics:
 - Complexity beyond constitution guidelines MUST be justified in ADR
 - Quarterly compliance reviews recommended
 - AI components MUST pass safety review before deployment
+- Kubernetes deployments MUST pass Helm lint and security scans
 
 ### Authoritative Hierarchy
 
@@ -836,4 +1063,4 @@ The system MUST include predictive analytics:
 4. Implementation Plans (plan.md)
 5. Task Lists (tasks.md)
 
-**Version**: 2.0.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-01-28
+**Version**: 3.0.0 | **Ratified**: 2026-01-18 | **Last Amended**: 2026-02-09

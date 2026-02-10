@@ -1,0 +1,86 @@
+{{/*
+  kagent Policy for AI Workload Governance
+
+  This defines policies for AI agent management including:
+  - Health monitoring
+  - Auto-restart on failure
+  - Scaling policies
+
+  Note: kagent is an optional component. If kagent CRDs are not installed,
+  this manifest will be skipped.
+*/}}
+
+{{- if .Values.autoscaling.enabled }}
+---
+# Pod Disruption Budget for AI agents
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.backend.name }}-pdb
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.backend.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai-agent
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "ai-wealth-companion.backend.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+---
+# ConfigMap documenting kagent setup
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-wealth-companion.fullname" . }}-kagent-info
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.labels" . | nindent 4 }}
+data:
+  README: |
+    kagent AI Workload Governance
+    =============================
+
+    kagent provides AI-operated Kubernetes workload management.
+
+    Installation (if kagent is available):
+    --------------------------------------
+    # Install kagent operator
+    kubectl apply -f https://github.com/kagent-dev/kagent/releases/latest/download/kagent.yaml
+
+    # Or via Helm (if available)
+    helm repo add kagent https://kagent-dev.github.io/charts
+    helm install kagent kagent/kagent
+
+    Features:
+    ---------
+    - AI agent health monitoring
+    - Automatic pod restart on failure (within 30 seconds)
+    - Intelligent scaling based on workload patterns
+    - Natural language cluster queries
+
+    Usage:
+    ------
+    # Query AI agent status
+    kagent status -n ai-wealth
+
+    # Scale AI agents
+    kagent scale backend --replicas=3 -n ai-wealth
+
+    # View agent logs
+    kagent logs backend -n ai-wealth
+
+    Current Configuration:
+    ----------------------
+    - Min replicas: {{ .Values.autoscaling.minReplicas | default 1 }}
+    - Max replicas: {{ .Values.autoscaling.maxReplicas | default 3 }}
+    - CPU target: {{ .Values.autoscaling.targetCPUUtilization | default 70 }}%
+    - Restart policy: Always (via liveness probes)
+
+    Liveness Probe Settings:
+    ------------------------
+    - Initial delay: {{ .Values.backend.healthCheck.initialDelaySeconds }}s
+    - Period: {{ .Values.backend.healthCheck.periodSeconds }}s
+    - Failure threshold: {{ .Values.backend.healthCheck.failureThreshold }}
+    - Expected restart time: < 30s (per SC-005)

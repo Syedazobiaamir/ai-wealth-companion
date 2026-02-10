@@ -1,0 +1,26 @@
+apiVersion: v2
+name: ai-wealth-companion
+description: AI-powered Wealth & Spending Companion - Local Kubernetes Deployment
+type: application
+version: 1.0.0
+appVersion: "4.0.0"
+
+maintainers:
+  - name: AI Wealth Companion Team
+    email: team@ai-wealth-companion.local
+
+keywords:
+  - ai
+  - finance
+  - wealth-management
+  - kubernetes
+  - helm
+
+home: https://github.com/ai-wealth-companion
+sources:
+  - https://github.com/ai-wealth-companion
+
+annotations:
+  app.kubernetes.io/name: ai-wealth-companion
+  app.kubernetes.io/part-of: ai-wealth-companion
+  app.kubernetes.io/managed-by: helm

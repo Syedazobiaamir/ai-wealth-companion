@@ -1,0 +1,74 @@
+# Development values for local Minikube deployment
+# Override default values for development environment
+
+global:
+  namespace: ai-wealth
+  imagePullPolicy: Never  # Use locally built images
+  environment: development
+
+# Backend with development settings
+backend:
+  replicaCount: 1
+  image:
+    repository: ai-wealth-companion/backend
+    tag: dev
+    pullPolicy: Never
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    DEBUG: "true"
+    PORT: "8000"
+
+# Frontend with development settings
+frontend:
+  replicaCount: 1
+  image:
+    repository: ai-wealth-companion/frontend
+    tag: dev
+    pullPolicy: Never
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+# MCP Server with development settings
+mcpServer:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ai-wealth-companion/backend
+    tag: dev
+    pullPolicy: Never
+
+# Ingress for local development
+ingress:
+  enabled: true
+  className: nginx
+  host: ai-wealth.local
+  tls:
+    enabled: false
+
+# Development config
+config:
+  appName: "AI Wealth Companion (Dev)"
+  appVersion: "4.0.0-dev"
+  debug: "true"
+  corsOrigins: "http://frontend:3000,http://localhost:3000,http://ai-wealth.local"
+  backendUrl: "http://backend:8000"
+  mcpServerUrl: "http://mcp-server:8080"
+
+# Disable autoscaling in development
+autoscaling:
+  enabled: false
+
+# No PDB in development
+podDisruptionBudget:
+  enabled: false

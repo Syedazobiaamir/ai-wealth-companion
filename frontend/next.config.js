@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   // Enable experimental features for App Router
   experimental: {
@@ -16,12 +17,14 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   },
   // Rewrite API calls to backend
+  // INTERNAL_API_URL is used for Docker networking (server-side)
+  // NEXT_PUBLIC_API_URL is used for client-side browser requests
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const internalApiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     return [
       {
         source: '/api/:path*',
-        destination: `${apiUrl}/api/:path*`,
+        destination: `${internalApiUrl}/api/:path*`,
       },
     ];
   },

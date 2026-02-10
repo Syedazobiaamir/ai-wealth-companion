@@ -12,10 +12,10 @@ from src.agents.skills.finance_crud import extract_amount
 from src.mcp.tools.crud_tools import (
     create_category, list_categories, delete_category,
     list_budgets, update_budget, delete_budget,
-    list_transactions, delete_transaction,
+    list_transactions, update_transaction, delete_transaction,
     update_task, delete_task,
     create_goal, list_goals, update_goal, delete_goal,
-    update_wallet, delete_wallet,
+    create_wallet, list_wallets, update_wallet, delete_wallet,
 )
 
 
@@ -39,18 +39,24 @@ class CrudAgent(BaseAgent):
 
         # High priority for explicit CRUD operations
         crud_verbs = ["delete", "remove", "update", "rename", "complete", "done", "hatao", "mitao"]
-        entity_words = ["category", "categories", "budget", "goal", "transaction", "task", "wallet"]
+        create_verbs = ["create", "add", "new", "make", "set", "banao"]
+        entity_words = ["category", "categories", "budget", "goal", "goals", "task", "tasks", "wallet", "wallets"]
 
         has_crud = any(v in lower for v in crud_verbs)
+        has_create = any(v in lower for v in create_verbs)
         has_entity = any(e in lower for e in entity_words)
+
+        # Highest priority for goal/task/wallet creation
+        if has_create and any(e in lower for e in ["goal", "goals", "task", "tasks"]):
+            return 0.98
 
         if has_crud and has_entity:
             return 0.95
 
-        # Also handle "list categories", "show budgets", etc.
+        # Also handle "list goals", "show budgets", etc.
         if any(e in lower for e in entity_words):
             if any(w in lower for w in ["list", "show", "my", "all"]):
-                return 0.85
+                return 0.90
 
         return super().can_handle(message, parsed)
 
@@ -83,6 +89,7 @@ class CrudAgent(BaseAgent):
             ("budget", "update"): self._update_budget,
             ("budget", "delete"): self._delete_budget,
             ("transaction", "list"): self._list_transactions,
+            ("transaction", "update"): self._update_transaction,
             ("transaction", "delete"): self._delete_transaction,
             ("task", "update"): self._update_task,
             ("task", "delete"): self._delete_task,
@@ -91,6 +98,8 @@ class CrudAgent(BaseAgent):
             ("goal", "list"): self._list_goals,
             ("goal", "update"): self._update_goal,
             ("goal", "delete"): self._delete_goal,
+            ("wallet", "create"): self._create_wallet,
+            ("wallet", "list"): self._list_wallets,
             ("wallet", "update"): self._update_wallet,
             ("wallet", "delete"): self._delete_wallet,
         }
@@ -242,6 +251,23 @@ class CrudAgent(BaseAgent):
             "confidence": 0.9,
         }
 
+    async def _update_transaction(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        last = any(w in message.lower() for w in ["last", "recent", "latest"])
+        amount = parsed.get("amount") or extract_amount(message)
+        category = parsed.get("category") or self._extract_name(message, "transaction")
+
+        result = await update_transaction(
+            self.user_id, self.session,
+            last=last,
+            amount=amount,
+            category=category,
+        )
+        return {
+            "response": result.get("message", result.get("error")),
+            "intent": "update_transaction",
+            "confidence": 0.9,
+        }
+
     async def _delete_transaction(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
         last = any(w in message.lower() for w in ["last", "recent", "latest"])
         result = await delete_transaction(self.user_id, self.session, last=last)
@@ -347,6 +373,38 @@ class CrudAgent(BaseAgent):
         }
 
     # ============== WALLET HANDLERS ==============
+
+    async def _create_wallet(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        name = self._extract_name(message, "wallet")
+        if not name:
+            return {"response": "What should I name the wallet?", "needs_clarification": True}
+
+        amount = parsed.get("amount") or extract_amount(message) or 0
+        wallet_type = "cash"
+        for wt in ["bank", "credit", "savings", "investment"]:
+            if wt in message.lower():
+                wallet_type = wt
+                break
+
+        result = await create_wallet(
+            self.user_id, self.session,
+            name=name,
+            wallet_type=wallet_type,
+            initial_balance=amount,
+        )
+        return {
+            "response": result.get("message", result.get("error")),
+            "intent": "create_wallet",
+            "confidence": 0.9,
+        }
+
+    async def _list_wallets(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
+        result = await list_wallets(self.user_id, self.session)
+        return {
+            "response": result.get("message", result.get("error")),
+            "intent": "list_wallets",
+            "confidence": 0.9,
+        }
 
     async def _update_wallet(self, message: str, parsed: Dict[str, Any]) -> Dict[str, Any]:
         name = self._extract_name(message, "wallet")

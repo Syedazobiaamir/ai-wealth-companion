@@ -1,0 +1,18 @@
+{{- if .Values.mcpServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.mcpServer.name }}
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.mcpServer.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mcpServer.service.type }}
+  ports:
+    - port: {{ .Values.mcpServer.service.port }}
+      targetPort: {{ .Values.mcpServer.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "ai-wealth-companion.mcpServer.selectorLabels" . | nindent 4 }}
+{{- end }}

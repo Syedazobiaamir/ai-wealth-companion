@@ -43,6 +43,22 @@ class SpendingAgent(BaseAgent):
         intent = parsed.get("intent", "query")
         lower_msg = message.lower()
 
+        # Skip if this is a goal/task/budget/category operation - let CRUD agent handle
+        crud_entities = {"goal", "goals", "task", "tasks", "budget", "budgets", "category", "categories"}
+        crud_verbs = {"delete", "remove", "update", "complete", "done"}
+
+        # Only forward to CRUD if it's a CRUD operation on these entities
+        if any(entity in lower_msg for entity in crud_entities):
+            from src.agents.subagents.crud_agent import CrudAgent
+            crud_agent = CrudAgent(self.session, self.user_id)
+            return await crud_agent.handle(message, parsed)
+
+        # Forward transaction delete/update to CRUD agent
+        if "transaction" in lower_msg and any(verb in lower_msg for verb in crud_verbs):
+            from src.agents.subagents.crud_agent import CrudAgent
+            crud_agent = CrudAgent(self.session, self.user_id)
+            return await crud_agent.handle(message, parsed)
+
         # Check for wallet-related intents first
         wallet_keywords = {"wallet", "wallets", "account", "balance", "paisa", "paisay"}
         create_keywords = {"create", "add", "new", "make", "banao", "open"}

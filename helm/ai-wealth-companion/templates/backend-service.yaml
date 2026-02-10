@@ -1,0 +1,18 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.backend.name }}
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.backend.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.backend.service.type }}
+  ports:
+    - port: {{ .Values.backend.service.port }}
+      targetPort: {{ .Values.backend.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "ai-wealth-companion.backend.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -205,9 +205,10 @@ class MasterOrchestrator:
         if any(s in lower for s in off_topic_signals):
             # But if it also has financial context, allow it
             financial_signals = [
-                "money", "spend", "budget", "expense", "income",
+                "money", "spend", "spent", "budget", "expense", "income",
                 "save", "invest", "balance", "transaction", "paisa",
-                "task", "remind", "bill", "due",
+                "task", "remind", "bill", "due", "transport", "food",
+                "groceries", "shopping", "salary", "rent", "utility",
             ]
             if not any(f in lower for f in financial_signals):
                 return True

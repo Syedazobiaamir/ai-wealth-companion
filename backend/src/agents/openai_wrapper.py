@@ -53,6 +53,7 @@ FINANCIAL_DISCLAIMER = (
 
 # Tool definitions shared between OpenAI and Gemini
 TOOL_DEFINITIONS = [
+    # ============== TRANSACTION TOOLS ==============
     {
         "name": "add_transaction",
         "description": "Record an income or expense transaction",
@@ -68,16 +69,140 @@ TOOL_DEFINITIONS = [
         }
     },
     {
-        "name": "get_financial_summary",
-        "description": "Get financial summary including income, expenses, and savings rate",
+        "name": "list_transactions",
+        "description": "List recent transactions with optional filters",
         "parameters": {
             "type": "object",
             "properties": {
-                "period": {"type": "string", "enum": ["day", "week", "month", "year"], "description": "Time period for the summary"}
+                "transaction_type": {"type": "string", "enum": ["expense", "income", "all"], "description": "Filter by transaction type"},
+                "limit": {"type": "integer", "description": "Number of transactions to show (default 10)"}
             },
             "required": []
         }
     },
+    {
+        "name": "update_transaction",
+        "description": "Update a transaction's amount, category, or description",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "transaction_id": {"type": "string", "description": "Transaction ID or 'last' for most recent"},
+                "amount": {"type": "number", "description": "New amount"},
+                "category": {"type": "string", "description": "New category"},
+                "description": {"type": "string", "description": "New description"}
+            },
+            "required": ["transaction_id"]
+        }
+    },
+    {
+        "name": "delete_transaction",
+        "description": "Delete a transaction",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "transaction_id": {"type": "string", "description": "Transaction ID or 'last' for most recent"}
+            },
+            "required": ["transaction_id"]
+        }
+    },
+    # ============== WALLET TOOLS ==============
+    {
+        "name": "create_wallet",
+        "description": "Create a new wallet/account",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Wallet name (e.g., 'Cash', 'Bank Account', 'Savings')"},
+                "initial_balance": {"type": "number", "description": "Starting balance in PKR"},
+                "wallet_type": {"type": "string", "enum": ["cash", "bank", "credit", "savings", "investment"], "description": "Type of wallet"}
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "list_wallets",
+        "description": "List all wallets and their balances",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+    },
+    {
+        "name": "update_wallet",
+        "description": "Update wallet name, balance, or set as default",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Current wallet name"},
+                "new_name": {"type": "string", "description": "New wallet name"},
+                "balance": {"type": "number", "description": "New balance"},
+                "set_default": {"type": "boolean", "description": "Set as default wallet"}
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "delete_wallet",
+        "description": "Delete a wallet",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Wallet name to delete"}
+            },
+            "required": ["name"]
+        }
+    },
+    # ============== GOAL TOOLS ==============
+    {
+        "name": "create_goal",
+        "description": "Create a savings goal",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Goal name (e.g., 'Emergency Fund', 'Vacation', 'New Phone')"},
+                "target_amount": {"type": "number", "description": "Target amount to save in PKR"},
+                "deadline": {"type": "string", "description": "Target date (e.g., '2026-12-31')"}
+            },
+            "required": ["name", "target_amount"]
+        }
+    },
+    {
+        "name": "list_goals",
+        "description": "List all savings goals and their progress",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "enum": ["active", "completed", "all"], "description": "Filter by goal status"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "update_goal",
+        "description": "Add money to a goal or update its target",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Goal name"},
+                "add_amount": {"type": "number", "description": "Amount to add to current savings"},
+                "new_target": {"type": "number", "description": "New target amount"}
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "delete_goal",
+        "description": "Delete a savings goal",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Goal name to delete"}
+            },
+            "required": ["name"]
+        }
+    },
+    # ============== BUDGET TOOLS ==============
     {
         "name": "create_budget",
         "description": "Create a monthly budget for a spending category",
@@ -91,28 +216,38 @@ TOOL_DEFINITIONS = [
         }
     },
     {
-        "name": "get_budget_status",
-        "description": "Check the status of budgets - spent vs limit",
+        "name": "list_budgets",
+        "description": "List all budgets with spent vs limit",
         "parameters": {
             "type": "object",
-            "properties": {
-                "category": {"type": "string", "description": "Specific category to check, or leave empty for all"}
-            },
+            "properties": {},
             "required": []
         }
     },
     {
-        "name": "simulate_investment",
-        "description": "Run investment projections at different risk levels",
+        "name": "update_budget",
+        "description": "Update a budget limit",
         "parameters": {
             "type": "object",
             "properties": {
-                "amount": {"type": "number", "description": "Investment amount in PKR"},
-                "months": {"type": "integer", "description": "Investment duration in months"}
+                "category": {"type": "string", "description": "Budget category"},
+                "amount": {"type": "number", "description": "New budget limit in PKR"}
             },
-            "required": ["amount", "months"]
+            "required": ["category", "amount"]
         }
     },
+    {
+        "name": "delete_budget",
+        "description": "Delete a budget",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "Budget category to delete"}
+            },
+            "required": ["category"]
+        }
+    },
+    # ============== TASK TOOLS ==============
     {
         "name": "create_task",
         "description": "Create a financial task or reminder",
@@ -129,11 +264,45 @@ TOOL_DEFINITIONS = [
     },
     {
         "name": "list_tasks",
-        "description": "List tasks by status (active, overdue, completed)",
+        "description": "List tasks by status",
         "parameters": {
             "type": "object",
             "properties": {
                 "status": {"type": "string", "enum": ["active", "overdue", "completed", "all"], "description": "Filter by task status"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "complete_task",
+        "description": "Mark a task as completed",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "Task title to complete"}
+            },
+            "required": ["title"]
+        }
+    },
+    {
+        "name": "delete_task",
+        "description": "Delete a task",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "Task title to delete"}
+            },
+            "required": ["title"]
+        }
+    },
+    # ============== ANALYSIS & TIPS TOOLS ==============
+    {
+        "name": "get_financial_summary",
+        "description": "Get financial summary including income, expenses, and savings rate",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "period": {"type": "string", "enum": ["day", "week", "month", "year"], "description": "Time period for the summary"}
             },
             "required": []
         }
@@ -145,6 +314,29 @@ TOOL_DEFINITIONS = [
             "type": "object",
             "properties": {},
             "required": []
+        }
+    },
+    {
+        "name": "get_financial_tips",
+        "description": "Get personalized financial tips and advice based on spending patterns",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "focus": {"type": "string", "enum": ["saving", "budgeting", "investing", "debt", "general"], "description": "Area to focus tips on"}
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "simulate_investment",
+        "description": "Run investment projections at different risk levels",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "amount": {"type": "number", "description": "Investment amount in PKR"},
+                "months": {"type": "integer", "description": "Investment duration in months"}
+            },
+            "required": ["amount", "months"]
         }
     }
 ]
@@ -323,19 +515,28 @@ class OpenAIAgentWrapper:
         # Extract text response
         response_text = response.text if hasattr(response, 'text') else str(response)
 
-        # For now, we'll use the orchestrator for tool execution
-        # and just use Gemini for natural language understanding
+        # Check if the user's message requires data access (queries or actions)
+        # We need to route to orchestrator for any financial operation
+        lower_message = message.lower()
 
-        # Check if Gemini suggests an action we should take
-        lower_response = response_text.lower()
-        if any(word in lower_response for word in ["record", "add", "create", "spent", "budget"]):
-            # Let the orchestrator handle the actual action
+        # Keywords that indicate we need to fetch/modify user data
+        action_keywords = ["record", "add", "create", "spent", "received", "earned", "paid"]
+        query_keywords = ["show", "list", "how many", "how much", "what is", "what are",
+                         "display", "get", "fetch", "my budget", "my transaction",
+                         "my expense", "my income", "my spending", "my balance",
+                         "budget status", "financial", "summary", "total", "health score"]
+
+        needs_data_access = (
+            any(word in lower_message for word in action_keywords) or
+            any(word in lower_message for word in query_keywords)
+        )
+
+        if needs_data_access:
+            # Let the orchestrator handle the actual data operation
             orchestrator_result = await self.orchestrator.process(message)
-            # Combine Gemini's response with orchestrator's result
-            if orchestrator_result.get("tool_calls"):
-                tool_calls_made = orchestrator_result.get("tool_calls", [])
-                # Use orchestrator's response for actions
-                response_text = orchestrator_result.get("response", response_text)
+            tool_calls_made = orchestrator_result.get("tool_calls", [])
+            # Use orchestrator's response which has actual data
+            response_text = orchestrator_result.get("response", response_text)
 
         return {
             "response": response_text,
@@ -432,38 +633,135 @@ class OpenAIAgentWrapper:
 
         This maps AI function calls to our existing MCP tools/services.
         """
-        # Use MasterOrchestrator to handle the actual execution
+        # ============== TRANSACTION TOOLS ==============
         if function_name == "add_transaction":
             tx_type = arguments.get("transaction_type", "expense")
             amount = arguments.get("amount", 0)
             category = arguments.get("category", "Other")
+            desc = arguments.get("description", "")
             msg = f"{'spent' if tx_type == 'expense' else 'received'} {amount} on {category}"
+            if desc:
+                msg += f" for {desc}"
             result = await self.orchestrator.process(msg)
             return {"success": True, "message": result.get("response", "Transaction recorded")}
 
-        elif function_name == "get_financial_summary":
-            period = arguments.get("period", "month")
-            result = await self.orchestrator.process(f"show my spending for this {period}")
-            return {"success": True, "summary": result.get("response", "")}
+        elif function_name == "list_transactions":
+            tx_type = arguments.get("transaction_type", "all")
+            limit = arguments.get("limit", 10)
+            msg = f"show my last {limit} {tx_type if tx_type != 'all' else ''} transactions"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "transactions": result.get("response", "")}
 
+        elif function_name == "update_transaction":
+            tx_id = arguments.get("transaction_id", "last")
+            amount = arguments.get("amount")
+            category = arguments.get("category")
+            msg = f"update {'last' if tx_id == 'last' else ''} transaction"
+            if amount:
+                msg += f" amount to {amount}"
+            if category:
+                msg += f" category to {category}"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "message": result.get("response", "Transaction updated")}
+
+        elif function_name == "delete_transaction":
+            tx_id = arguments.get("transaction_id", "last")
+            msg = f"delete {'last' if tx_id == 'last' else ''} transaction"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "message": result.get("response", "Transaction deleted")}
+
+        # ============== WALLET TOOLS ==============
+        elif function_name == "create_wallet":
+            name = arguments.get("name", "")
+            balance = arguments.get("initial_balance", 0)
+            wallet_type = arguments.get("wallet_type", "cash")
+            msg = f"create {wallet_type} wallet {name} with balance {balance}"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "message": result.get("response", "Wallet created")}
+
+        elif function_name == "list_wallets":
+            result = await self.orchestrator.process("show my wallets")
+            return {"success": True, "wallets": result.get("response", "")}
+
+        elif function_name == "update_wallet":
+            name = arguments.get("name", "")
+            new_name = arguments.get("new_name")
+            balance = arguments.get("balance")
+            set_default = arguments.get("set_default", False)
+            if set_default:
+                msg = f"set {name} wallet as default"
+            elif new_name:
+                msg = f"rename wallet {name} to {new_name}"
+            elif balance:
+                msg = f"update wallet {name} balance to {balance}"
+            else:
+                msg = f"update wallet {name}"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "message": result.get("response", "Wallet updated")}
+
+        elif function_name == "delete_wallet":
+            name = arguments.get("name", "")
+            result = await self.orchestrator.process(f"delete wallet {name}")
+            return {"success": True, "message": result.get("response", "Wallet deleted")}
+
+        # ============== GOAL TOOLS ==============
+        elif function_name == "create_goal":
+            name = arguments.get("name", "")
+            target = arguments.get("target_amount", 0)
+            deadline = arguments.get("deadline", "")
+            msg = f"create goal {name} for {target}"
+            if deadline:
+                msg += f" by {deadline}"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "message": result.get("response", "Goal created")}
+
+        elif function_name == "list_goals":
+            status = arguments.get("status", "active")
+            msg = f"show my {status if status != 'all' else ''} goals"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "goals": result.get("response", "")}
+
+        elif function_name == "update_goal":
+            name = arguments.get("name", "")
+            add_amount = arguments.get("add_amount")
+            new_target = arguments.get("new_target")
+            if add_amount:
+                msg = f"add {add_amount} to goal {name}"
+            elif new_target:
+                msg = f"update goal {name} target to {new_target}"
+            else:
+                msg = f"update goal {name}"
+            result = await self.orchestrator.process(msg)
+            return {"success": True, "message": result.get("response", "Goal updated")}
+
+        elif function_name == "delete_goal":
+            name = arguments.get("name", "")
+            result = await self.orchestrator.process(f"delete goal {name}")
+            return {"success": True, "message": result.get("response", "Goal deleted")}
+
+        # ============== BUDGET TOOLS ==============
         elif function_name == "create_budget":
             category = arguments.get("category", "")
             amount = arguments.get("amount", 0)
             result = await self.orchestrator.process(f"set {category} budget to {amount}")
             return {"success": True, "message": result.get("response", "Budget created")}
 
-        elif function_name == "get_budget_status":
+        elif function_name == "list_budgets":
+            result = await self.orchestrator.process("show my budgets")
+            return {"success": True, "budgets": result.get("response", "")}
+
+        elif function_name == "update_budget":
             category = arguments.get("category", "")
-            msg = f"how is my {category} budget?" if category else "show my budgets"
-            result = await self.orchestrator.process(msg)
-            return {"success": True, "status": result.get("response", "")}
-
-        elif function_name == "simulate_investment":
             amount = arguments.get("amount", 0)
-            months = arguments.get("months", 12)
-            result = await self.orchestrator.process(f"what if I invest {amount} for {months} months")
-            return {"success": True, "projection": result.get("response", "")}
+            result = await self.orchestrator.process(f"update {category} budget to {amount}")
+            return {"success": True, "message": result.get("response", "Budget updated")}
 
+        elif function_name == "delete_budget":
+            category = arguments.get("category", "")
+            result = await self.orchestrator.process(f"delete budget for {category}")
+            return {"success": True, "message": result.get("response", "Budget deleted")}
+
+        # ============== TASK TOOLS ==============
         elif function_name == "create_task":
             title = arguments.get("title", "")
             due_date = arguments.get("due_date", "")
@@ -478,13 +776,40 @@ class OpenAIAgentWrapper:
 
         elif function_name == "list_tasks":
             status = arguments.get("status", "active")
-            msg = "show my overdue tasks" if status == "overdue" else "show my tasks"
+            msg = f"show my {status if status != 'all' else ''} tasks"
             result = await self.orchestrator.process(msg)
             return {"success": True, "tasks": result.get("response", "")}
+
+        elif function_name == "complete_task":
+            title = arguments.get("title", "")
+            result = await self.orchestrator.process(f"complete task {title}")
+            return {"success": True, "message": result.get("response", "Task completed")}
+
+        elif function_name == "delete_task":
+            title = arguments.get("title", "")
+            result = await self.orchestrator.process(f"delete task {title}")
+            return {"success": True, "message": result.get("response", "Task deleted")}
+
+        # ============== ANALYSIS & TIPS TOOLS ==============
+        elif function_name == "get_financial_summary":
+            period = arguments.get("period", "month")
+            result = await self.orchestrator.process(f"show my spending for this {period}")
+            return {"success": True, "summary": result.get("response", "")}
 
         elif function_name == "get_health_score":
             result = await self.orchestrator.process("what is my financial health score")
             return {"success": True, "score": result.get("response", "")}
+
+        elif function_name == "get_financial_tips":
+            focus = arguments.get("focus", "general")
+            result = await self.orchestrator.process(f"give me {focus} financial tips")
+            return {"success": True, "tips": result.get("response", "")}
+
+        elif function_name == "simulate_investment":
+            amount = arguments.get("amount", 0)
+            months = arguments.get("months", 12)
+            result = await self.orchestrator.process(f"what if I invest {amount} for {months} months")
+            return {"success": True, "projection": result.get("response", "")}
 
         else:
             return {"success": False, "error": f"Unknown function: {function_name}"}

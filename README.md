@@ -200,14 +200,99 @@ python -m src
 
 ---
 
-## Future Phases
+## Phase IV - Local Kubernetes Deployment
+
+Deploy the application to a local Kubernetes cluster using Minikube, Helm, and AI-powered operations.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Minikube Cluster** | Local Kubernetes with ingress support |
+| **Helm 3.x Charts** | Production-ready deployment templates |
+| **kubectl-ai** | Natural language cluster operations |
+| **kagent** | AI workload governance and scaling |
+| **HPA Autoscaling** | CPU/memory-based pod scaling |
+| **Secret Management** | Kubernetes Secrets for credentials |
+| **Health Probes** | Liveness/readiness for self-healing |
+
+### Quick Start (Kubernetes)
+
+```bash
+# 1. Setup Minikube cluster
+./scripts/k8s-setup.sh
+
+# 2. Create secrets
+./scripts/k8s-secrets.sh --all
+
+# 3. Build and deploy (local Minikube)
+./scripts/k8s-deploy.sh --build
+
+# 4. Add hosts entry
+echo "$(minikube ip) ai-wealth.local" | sudo tee -a /etc/hosts
+
+# 5. Access the app
+open http://ai-wealth.local
+```
+
+### Docker Hub Deployment
+
+```bash
+# 1. Push images to Docker Hub
+DOCKER_USERNAME=yourusername ./scripts/k8s-deploy.sh --dockerhub
+
+# 2. Update values with your username
+cp helm/ai-wealth-companion/values-dockerhub.yaml helm/ai-wealth-companion/values-custom.yaml
+# Edit values-custom.yaml and replace YOUR_DOCKER_USERNAME
+
+# 3. Deploy with Docker Hub images
+helm install ai-wealth ./helm/ai-wealth-companion \
+  -n ai-wealth \
+  -f helm/ai-wealth-companion/values-custom.yaml
+```
+
+### kubectl-ai Commands
+
+```bash
+# Natural language cluster operations
+kubectl-ai "show me all pods in ai-wealth namespace"
+kubectl-ai "why is the backend pod failing?"
+kubectl-ai "scale frontend to 3 replicas"
+kubectl-ai "get logs from backend pod"
+```
+
+### Project Structure (Phase IV)
+
+```
+├── helm/ai-wealth-companion/
+│   ├── Chart.yaml              # Helm chart metadata
+│   ├── values.yaml             # Default configuration
+│   ├── values-dev.yaml         # Development overrides
+│   ├── values-dockerhub.yaml   # Docker Hub template
+│   └── templates/
+│       ├── backend-deployment.yaml
+│       ├── frontend-deployment.yaml
+│       ├── ingress.yaml
+│       ├── hpa.yaml
+│       └── ...
+│
+├── scripts/
+│   ├── k8s-setup.sh            # Minikube setup
+│   ├── k8s-deploy.sh           # Helm deployment
+│   ├── k8s-secrets.sh          # Secret creation
+│   └── k8s-teardown.sh         # Cleanup
+```
+
+---
+
+## Project Phases
 
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase I | CLI Financial Core | ✅ Complete |
 | Phase II | Full-Stack Platform | ✅ Complete |
-| Phase III | AI Chatbot + Voice Commands | 🔜 Planned |
-| Phase IV | Local Kubernetes Deployment | 🔜 Planned |
+| Phase III | AI Chatbot + Gemini Integration | ✅ Complete |
+| Phase IV | Local Kubernetes Deployment | ✅ Complete |
 | Phase V | Cloud Production (DigitalOcean) | 🔜 Planned |
 
 ---

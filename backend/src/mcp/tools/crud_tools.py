@@ -12,7 +12,7 @@ from src.models.category import Category
 from src.models.budget import Budget
 from src.models.transaction import Transaction, TransactionType
 from src.models.wallet import Wallet
-from src.models.task import Task, TaskStatus, TaskPriority, TaskCategory
+from src.models.task import Task, TaskPriority, TaskCategory
 
 
 # ============== CATEGORY CRUD ==============
@@ -319,6 +319,74 @@ async def list_transactions(
     }
 
 
+async def update_transaction(
+    user_id: UUID,
+    session: AsyncSession,
+    transaction_id: str = None,
+    last: bool = False,
+    amount: float = None,
+    category: str = None,
+    description: str = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """Update a transaction by ID or the last one."""
+    if last or transaction_id == "last":
+        stmt = select(Transaction).where(
+            Transaction.user_id == user_id
+        ).order_by(Transaction.created_at.desc()).limit(1)
+        result = await session.execute(stmt)
+        txn = result.scalar_one_or_none()
+    elif transaction_id:
+        try:
+            txn_uuid = UUID(transaction_id)
+            stmt = select(Transaction).where(
+                Transaction.id == txn_uuid,
+                Transaction.user_id == user_id
+            )
+            result = await session.execute(stmt)
+            txn = result.scalar_one_or_none()
+        except ValueError:
+            return {"error": "Invalid transaction ID."}
+    else:
+        return {"error": "Please specify which transaction to update or say 'update last transaction'."}
+
+    if not txn:
+        return {"error": "Transaction not found."}
+
+    updates = []
+    if amount:
+        txn.amount = Decimal(str(amount))
+        updates.append(f"amount to {amount:,.0f}")
+
+    if category:
+        # Find category
+        cat_stmt = select(Category).where(
+            Category.user_id == user_id,
+            Category.name.ilike(f"%{category}%")
+        )
+        cat_result = await session.execute(cat_stmt)
+        cat = cat_result.scalar_one_or_none()
+        if cat:
+            txn.category_id = cat.id
+            updates.append(f"category to {cat.name}")
+        else:
+            return {"error": f"Category '{category}' not found."}
+
+    if description:
+        txn.note = description
+        updates.append(f"description to '{description}'")
+
+    if not updates:
+        return {"error": "Please specify what to update (amount, category, or description)."}
+
+    txn.updated_at = datetime.utcnow()
+    await session.commit()
+
+    return {
+        "message": f"Transaction updated: {', '.join(updates)}",
+    }
+
+
 async def delete_transaction(
     user_id: UUID,
     session: AsyncSession,
@@ -400,7 +468,7 @@ async def update_task(
         except ValueError:
             pass
     if mark_complete:
-        task.status = TaskStatus.completed
+        task.is_completed = True
         task.completed_at = datetime.utcnow()
 
     task.updated_at = datetime.utcnow()
@@ -449,7 +517,7 @@ async def create_goal(
     **kwargs,
 ) -> Dict[str, Any]:
     """Create a savings goal."""
-    from src.models.goal import Goal
+    from src.models.goal import Goal, GoalStatus
 
     goal = Goal(
         user_id=user_id,
@@ -457,7 +525,7 @@ async def create_goal(
         target_amount=Decimal(str(target_amount)),
         current_amount=Decimal("0"),
         target_date=date.fromisoformat(target_date) if target_date else None,
-        is_active=True,
+        status=GoalStatus.active,
     )
     session.add(goal)
     await session.commit()
@@ -477,11 +545,11 @@ async def list_goals(
     **kwargs,
 ) -> Dict[str, Any]:
     """List all savings goals."""
-    from src.models.goal import Goal
+    from src.models.goal import Goal, GoalStatus
 
     stmt = select(Goal).where(
         Goal.user_id == user_id,
-        Goal.is_active == True
+        Goal.status == GoalStatus.active
     )
     result = await session.execute(stmt)
     goals = result.scalars().all()
@@ -522,12 +590,12 @@ async def update_goal(
     **kwargs,
 ) -> Dict[str, Any]:
     """Update a goal - add savings or change target."""
-    from src.models.goal import Goal
+    from src.models.goal import Goal, GoalStatus
 
     stmt = select(Goal).where(
         Goal.user_id == user_id,
         Goal.name.ilike(f"%{name}%"),
-        Goal.is_active == True
+        Goal.status == GoalStatus.active
     )
     result = await session.execute(stmt)
     goal = result.scalar_one_or_none()
@@ -560,7 +628,7 @@ async def delete_goal(
     **kwargs,
 ) -> Dict[str, Any]:
     """Delete a savings goal."""
-    from src.models.goal import Goal
+    from src.models.goal import Goal, GoalStatus
 
     stmt = select(Goal).where(
         Goal.user_id == user_id,
@@ -573,7 +641,7 @@ async def delete_goal(
         return {"error": f"Goal '{name}' not found."}
 
     goal_name = goal.name
-    goal.is_active = False
+    goal.status = GoalStatus.cancelled
     await session.commit()
 
     return {
@@ -581,7 +649,102 @@ async def delete_goal(
     }
 
 
-# ============== WALLET UPDATE/DELETE ==============
+# ============== WALLET CRUD ==============
+
+async def create_wallet(
+    user_id: UUID,
+    session: AsyncSession,
+    name: str,
+    wallet_type: str = "cash",
+    initial_balance: float = 0,
+    currency: str = "PKR",
+    **kwargs,
+) -> Dict[str, Any]:
+    """Create a new wallet."""
+    # Check if wallet already exists
+    stmt = select(Wallet).where(
+        Wallet.user_id == user_id,
+        Wallet.name.ilike(name),
+        Wallet.is_active == True
+    )
+    result = await session.execute(stmt)
+    existing = result.scalar_one_or_none()
+    if existing:
+        return {"error": f"Wallet '{name}' already exists."}
+
+    # Check if this is the first wallet (make it default)
+    count_stmt = select(Wallet).where(
+        Wallet.user_id == user_id,
+        Wallet.is_active == True
+    )
+    count_result = await session.execute(count_stmt)
+    is_first = len(count_result.scalars().all()) == 0
+
+    wallet = Wallet(
+        user_id=user_id,
+        name=name.title(),
+        wallet_type=wallet_type.lower(),
+        current_balance=Decimal(str(initial_balance)),
+        currency=currency,
+        is_default=is_first,
+        is_active=True,
+    )
+    session.add(wallet)
+    await session.commit()
+    await session.refresh(wallet)
+
+    return {
+        "wallet_id": str(wallet.id),
+        "name": wallet.name,
+        "balance": float(wallet.current_balance),
+        "message": f"Wallet '{wallet.name}' created with balance PKR {initial_balance:,.0f}!",
+    }
+
+
+async def list_wallets(
+    user_id: UUID,
+    session: AsyncSession,
+    **kwargs,
+) -> Dict[str, Any]:
+    """List all wallets for the user."""
+    stmt = select(Wallet).where(
+        Wallet.user_id == user_id,
+        Wallet.is_active == True
+    )
+    result = await session.execute(stmt)
+    wallets = result.scalars().all()
+
+    if not wallets:
+        return {
+            "wallets": [],
+            "total": 0,
+            "message": "No wallets found. Say 'create wallet Cash' to add one!",
+        }
+
+    wallet_list = []
+    lines = ["Your wallets:"]
+    total_balance = 0
+    for w in wallets:
+        wallet_list.append({
+            "id": str(w.id),
+            "name": w.name,
+            "type": w.wallet_type,
+            "balance": float(w.current_balance),
+            "is_default": w.is_default,
+        })
+        default_marker = "✓" if w.is_default else " "
+        lines.append(f"  {default_marker} {w.name} ({w.wallet_type}): PKR {float(w.current_balance):,.0f}")
+        total_balance += float(w.current_balance)
+
+    lines.append(f"\nTotal Balance: PKR {total_balance:,.0f}")
+
+    return {
+        "wallets": wallet_list,
+        "total": len(wallet_list),
+        "total_balance": total_balance,
+        "message": "\n".join(lines),
+    }
+
 
 async def update_wallet(
     user_id: UUID,

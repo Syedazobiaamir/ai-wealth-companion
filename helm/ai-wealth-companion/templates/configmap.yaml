@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-wealth-companion.fullname" . }}-config
+  namespace: {{ include "ai-wealth-companion.namespace" . }}
+  labels:
+    {{- include "ai-wealth-companion.labels" . | nindent 4 }}
+data:
+  APP_NAME: {{ .Values.config.appName | quote }}
+  APP_VERSION: {{ .Values.config.appVersion | quote }}
+  DEBUG: {{ .Values.config.debug | quote }}
+  CORS_ORIGINS: {{ .Values.config.corsOrigins | quote }}
+  # Internal service URLs for service mesh readiness
+  BACKEND_URL: {{ .Values.config.backendUrl | quote }}
+  MCP_SERVER_URL: {{ .Values.config.mcpServerUrl | quote }}
+  # Frontend API URL (points to backend service)
+  NEXT_PUBLIC_API_URL: {{ .Values.config.backendUrl | quote }}

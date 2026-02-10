@@ -14,8 +14,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Accept build args for environment variables
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED 1
-RUN npm run build
+
+# Build with network access for Google Fonts
+RUN --mount=type=cache,target=/root/.npm npm run build
 
 # Production image
 FROM base AS runner
