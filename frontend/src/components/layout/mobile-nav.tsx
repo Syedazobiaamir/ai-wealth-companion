@@ -2,9 +2,10 @@
 
 import { NAV_ITEMS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 const icons: Record<string, React.ReactNode> = {
   LayoutDashboard: (
@@ -60,40 +61,135 @@ const icons: Record<string, React.ReactNode> = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
+  Menu: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  ),
 };
+
+// Primary nav items for mobile (most important)
+const MOBILE_PRIMARY_ITEMS = [
+  { label: 'Home', href: '/dashboard', icon: 'LayoutDashboard' },
+  { label: 'Chat', href: '/chat', icon: 'MessageCircle' },
+  { label: 'Goals', href: '/goals', icon: 'Target' },
+  { label: 'Tasks', href: '/tasks', icon: 'CheckSquare' },
+];
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [showMore, setShowMore] = useState(false);
+
+  // Items that go in the "More" menu
+  const moreItems = NAV_ITEMS.filter(
+    item => !MOBILE_PRIMARY_ITEMS.some(p => p.href === item.href)
+  );
+
+  const isMoreActive = moreItems.some(item => pathname === item.href);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/50 dark:border-gray-800/50 bg-white/90 dark:bg-gray-900/80 backdrop-blur-xl lg:hidden safe-area-pb">
-      <div className="flex items-center justify-around py-2">
-        {NAV_ITEMS.slice(0, 5).map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link key={item.href} href={item.href} className="relative">
-              <motion.div
-                className={cn(
-                  'flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors duration-200 cursor-pointer',
-                  isActive
-                    ? 'text-purple-600 dark:text-purple-400'
-                    : 'text-slate-500 dark:text-gray-400'
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
-                {icons[item.icon]}
-                <span className="text-xs font-medium">{item.label}</span>
-                {isActive && (
-                  <motion.div
-                    className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-6 h-1 rounded-full bg-gradient-to-r from-purple-600 to-blue-500"
-                    layoutId="activeIndicator"
-                  />
-                )}
-              </motion.div>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      {/* More Menu Overlay */}
+      <AnimatePresence>
+        {showMore && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setShowMore(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="fixed bottom-16 left-2 right-2 z-50 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 lg:hidden"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                {moreItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setShowMore(false)}
+                    >
+                      <motion.div
+                        className={cn(
+                          'flex flex-col items-center gap-2 p-3 rounded-xl transition-colors',
+                          isActive
+                            ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                            : 'text-slate-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        )}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {icons[item.icon]}
+                        <span className="text-xs font-medium">{item.label}</span>
+                      </motion.div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200/50 dark:border-gray-800/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl lg:hidden safe-area-pb">
+        <div className="flex items-center justify-around py-2 px-2">
+          {MOBILE_PRIMARY_ITEMS.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href} className="relative flex-1">
+                <motion.div
+                  className={cn(
+                    'flex flex-col items-center gap-1 py-2 rounded-xl transition-colors duration-200 cursor-pointer',
+                    isActive
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-slate-500 dark:text-gray-400'
+                  )}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {icons[item.icon]}
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                  {isActive && (
+                    <motion.div
+                      className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-6 h-1 rounded-full bg-gradient-to-r from-purple-600 to-blue-500"
+                      layoutId="activeIndicator"
+                    />
+                  )}
+                </motion.div>
+              </Link>
+            );
+          })}
+
+          {/* More Button */}
+          <button
+            onClick={() => setShowMore(!showMore)}
+            className="relative flex-1"
+          >
+            <motion.div
+              className={cn(
+                'flex flex-col items-center gap-1 py-2 rounded-xl transition-colors duration-200 cursor-pointer',
+                showMore || isMoreActive
+                  ? 'text-purple-600 dark:text-purple-400'
+                  : 'text-slate-500 dark:text-gray-400'
+              )}
+              whileTap={{ scale: 0.95 }}
+            >
+              {icons.Menu}
+              <span className="text-[10px] font-medium">More</span>
+              {isMoreActive && !showMore && (
+                <motion.div
+                  className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-6 h-1 rounded-full bg-gradient-to-r from-purple-600 to-blue-500"
+                />
+              )}
+            </motion.div>
+          </button>
+        </div>
+      </nav>
+    </>
   );
 }
