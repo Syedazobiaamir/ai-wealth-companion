@@ -1,3 +1,4 @@
+// Build: v5.0.1 - Mobile navigation fix
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
