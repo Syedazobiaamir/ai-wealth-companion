@@ -32,3 +32,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+// Redeploy trigger: Sun Feb 15 22:11:13 PKT 2026
