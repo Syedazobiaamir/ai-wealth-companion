@@ -66,9 +66,49 @@ async_session_factory = sessionmaker(
 
 
 async def init_db() -> None:
-    """Initialize database tables."""
+    """Initialize database tables and run migrations."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+
+        # Run migrations for existing tables (add new columns if they don't exist)
+        await run_migrations(conn)
+
+
+async def run_migrations(conn) -> None:
+    """Run database migrations for schema updates."""
+    from sqlalchemy import text
+
+    # Migration: Add password reset columns to users table
+    migrations = [
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'password_reset_token'
+            ) THEN
+                ALTER TABLE users ADD COLUMN password_reset_token VARCHAR(255);
+            END IF;
+        END $$;
+        """,
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'password_reset_expires'
+            ) THEN
+                ALTER TABLE users ADD COLUMN password_reset_expires TIMESTAMP;
+            END IF;
+        END $$;
+        """,
+    ]
+
+    for migration in migrations:
+        try:
+            await conn.execute(text(migration))
+        except Exception:
+            pass  # Column might already exist or migration failed silently
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
