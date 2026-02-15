@@ -28,10 +28,11 @@ export default function SignupPage() {
     setError(null);
 
     try {
+      // Trim whitespace from inputs
       await register({
-        email,
-        password,
-        display_name: name,
+        email: email.trim(),
+        password: password.trim(),
+        display_name: name.trim(),
         preferred_currency: 'PKR',
         preferred_locale: 'en',
       });

@@ -27,7 +27,8 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await login(email, password);
+      // Trim whitespace from email and password
+      await login(email.trim(), password.trim());
       // Use hard redirect to ensure clean state initialization
       window.location.href = '/dashboard';
     } catch (err) {
