@@ -63,13 +63,13 @@ async def register(
 
     access_token, refresh_token = auth_service.create_tokens(user)
 
-    # Set refresh token as httpOnly cookie
+    # Set refresh token as httpOnly cookie (samesite=none for cross-domain)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path="/api/v1/auth",
     )
@@ -115,13 +115,13 @@ async def login(
 
     access_token, refresh_token = auth_service.create_tokens(user)
 
-    # Set refresh token as httpOnly cookie
+    # Set refresh token as httpOnly cookie (samesite=none for cross-domain)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path="/api/v1/auth",
     )
@@ -172,13 +172,13 @@ async def refresh_token(
 
     new_access_token, new_refresh_token = tokens
 
-    # Set new refresh token as httpOnly cookie (token rotation)
+    # Set new refresh token as httpOnly cookie (token rotation, samesite=none for cross-domain)
     response.set_cookie(
         key="refresh_token",
         value=new_refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path="/api/v1/auth",
     )
@@ -199,10 +199,12 @@ async def logout(
     current_user: CurrentUser,
 ) -> MessageResponse:
     """Invalidate refresh token and clear cookie."""
-    # Clear the refresh token cookie
+    # Clear the refresh token cookie (samesite=none for cross-domain)
     response.delete_cookie(
         key="refresh_token",
         path="/api/v1/auth",
+        secure=True,
+        samesite="none",
     )
 
     return MessageResponse(

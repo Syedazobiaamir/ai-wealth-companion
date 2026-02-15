@@ -93,13 +93,14 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS middleware
+# CORS middleware (allow credentials for cross-domain cookies)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 
@@ -114,6 +115,7 @@ async def health_check():
         "version": settings.app_version,
         "ai_provider": "gemini" if gemini_key else "rule-based",
         "gemini_configured": bool(gemini_key),
+        "cors_origins": settings.cors_origins_list,
     }
 
 
