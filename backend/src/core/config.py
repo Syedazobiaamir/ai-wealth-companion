@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     oauth_redirect_base: str = "http://localhost:3000"
 
+    # Email Service (Resend)
+    resend_api_key: str = ""
+    email_from: str = "AI Wealth Companion <noreply@resend.dev>"
+    frontend_url: str = "http://localhost:3000"
+    password_reset_expire_minutes: int = 30
+
     # Rate limiting
     rate_limit_requests: int = 100
     rate_limit_period: int = 60  # seconds

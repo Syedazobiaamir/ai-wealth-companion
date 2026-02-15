@@ -9,10 +9,13 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from pydantic import EmailStr
+
 from src.api.deps import CurrentUser, get_auth_service, get_db
 from src.core.config import get_settings
 from src.models.user import UserCreate, UserLogin, UserRead
 from src.services.auth_service import AuthService
+from src.services.email_service import email_service
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 settings = get_settings()
@@ -220,4 +223,107 @@ async def get_current_user_profile(
     return AuthResponse(
         data=UserRead.model_validate(current_user).model_dump(),
         meta={},
+    )
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Forgot password request schema."""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Reset password request schema."""
+
+    token: str
+    password: str
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/minute")
+async def forgot_password(
+    request: Request,
+    data: ForgotPasswordRequest,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    """
+    Request a password reset email.
+
+    Always returns success to prevent email enumeration attacks.
+    """
+    auth_service = AuthService(session)
+
+    # Create reset token (returns None if user doesn't exist)
+    token = await auth_service.create_password_reset_token(data.email)
+
+    if token:
+        # Get user for display name
+        user = await auth_service.get_user_by_email(data.email)
+
+        # Send password reset email
+        await email_service.send_password_reset_email(
+            to_email=data.email,
+            reset_token=token,
+            user_name=user.display_name if user else None,
+        )
+
+    # Always return success to prevent email enumeration
+    return MessageResponse(
+        data={
+            "message": "If an account with that email exists, a password reset link has been sent."
+        },
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+@limiter.limit("5/minute")
+async def reset_password(
+    request: Request,
+    data: ResetPasswordRequest,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    """Reset password using a valid reset token."""
+    if len(data.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long",
+        )
+
+    auth_service = AuthService(session)
+    user = await auth_service.reset_password(data.token, data.password)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+
+    # Send confirmation email
+    await email_service.send_password_changed_notification(
+        to_email=user.email,
+        user_name=user.display_name,
+    )
+
+    return MessageResponse(
+        data={"message": "Password has been reset successfully. You can now log in."},
+    )
+
+
+@router.get("/verify-reset-token/{token}", response_model=MessageResponse)
+async def verify_reset_token(
+    token: str,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> MessageResponse:
+    """Verify if a password reset token is valid."""
+    auth_service = AuthService(session)
+    user = await auth_service.verify_password_reset_token(token)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+
+    return MessageResponse(
+        data={"message": "Token is valid"},
     )

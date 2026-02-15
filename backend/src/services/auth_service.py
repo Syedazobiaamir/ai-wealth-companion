@@ -1,12 +1,14 @@
 """Authentication service for user management and token handling."""
 
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from uuid import UUID
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.core.config import get_settings
 from src.core.security import (
     create_access_token,
     create_refresh_token,
@@ -15,6 +17,8 @@ from src.core.security import (
     verify_token,
 )
 from src.models.user import User, UserCreate, UserRead
+
+settings = get_settings()
 
 
 class AuthService:
@@ -113,6 +117,80 @@ class AuthService:
             return None
 
         return await self.get_user_by_id(user_id)
+
+    async def create_password_reset_token(self, email: str) -> Optional[str]:
+        """
+        Create a password reset token for a user.
+
+        Args:
+            email: User's email address
+
+        Returns:
+            Reset token if user exists, None otherwise
+        """
+        user = await self.get_user_by_email(email)
+        if not user:
+            return None
+
+        # Generate secure random token
+        token = secrets.token_urlsafe(32)
+
+        # Set token and expiration
+        user.password_reset_token = token
+        user.password_reset_expires = datetime.utcnow() + timedelta(
+            minutes=settings.password_reset_expire_minutes
+        )
+
+        await self.session.commit()
+        return token
+
+    async def verify_password_reset_token(self, token: str) -> Optional[User]:
+        """
+        Verify a password reset token and return the user.
+
+        Args:
+            token: Password reset token
+
+        Returns:
+            User if token is valid and not expired, None otherwise
+        """
+        statement = select(User).where(User.password_reset_token == token)
+        result = await self.session.execute(statement)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return None
+
+        # Check if token is expired
+        if user.password_reset_expires and user.password_reset_expires < datetime.utcnow():
+            return None
+
+        return user
+
+    async def reset_password(self, token: str, new_password: str) -> Optional[User]:
+        """
+        Reset user's password using a valid reset token.
+
+        Args:
+            token: Password reset token
+            new_password: New password to set
+
+        Returns:
+            User if password was reset successfully, None otherwise
+        """
+        user = await self.verify_password_reset_token(token)
+        if not user:
+            return None
+
+        # Update password and clear reset token
+        user.password_hash = hash_password(new_password)
+        user.password_reset_token = None
+        user.password_reset_expires = None
+        user.updated_at = datetime.utcnow()
+
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
 
 
 class TokenResponse:

@@ -43,6 +43,9 @@ class User(UserBase, table=True):
     # OAuth fields
     oauth_provider: Optional[str] = Field(default=None, max_length=20)
     oauth_provider_id: Optional[str] = Field(default=None, max_length=255)
+    # Password reset fields
+    password_reset_token: Optional[str] = Field(default=None, max_length=255)
+    password_reset_expires: Optional[datetime] = Field(default=None)
 
 
 class UserCreate(SQLModel):
